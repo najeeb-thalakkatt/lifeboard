@@ -22,6 +22,14 @@ service cloud.firestore {
         request.auth.uid in request.resource.data.members;
     }
 
+    /// Returns true if the user is joining the space (not yet a member, will be after update, with 'member' role).
+    function isJoiningSpace() {
+      return isAuthenticated() &&
+        !(request.auth.uid in resource.data.members) &&
+        request.auth.uid in request.resource.data.members &&
+        request.resource.data.members[request.auth.uid].role == 'member';
+    }
+
     // ── Users ─────────────────────────────────────────────────
 
     match /users/{userId} {
@@ -41,8 +49,8 @@ service cloud.firestore {
       // Any authenticated user can create a space (they become the owner).
       allow create: if isAuthenticated() && willBeSpaceMember(spaceId);
 
-      // Only existing members can update a space (e.g., adding new members).
-      allow update: if isSpaceMember(spaceId);
+      // Existing members can update, OR a new user can join (add themselves as 'member').
+      allow update: if isSpaceMember(spaceId) || isJoiningSpace();
 
       // Only the owner can delete a space.
       allow delete: if isAuthenticated() &&
@@ -78,11 +86,14 @@ service cloud.firestore {
         }
       }
 
-      // ── Activity (sub-collection) — read-only for clients ──
+      // ── Activity (sub-collection) ────────────────────────────
       match /activity/{activityId} {
         allow read: if isAuthenticated() &&
           request.auth.uid in get(/databases/$(database)/documents/spaces/$(spaceId)).data.members;
-        allow write: if false; // Write only via Cloud Functions (admin SDK)
+        // Members can update reactions; create/delete only via Cloud Functions
+        allow update: if isAuthenticated() &&
+          request.auth.uid in get(/databases/$(database)/documents/spaces/$(spaceId)).data.members;
+        allow create, delete: if false;
       }
     }
   }

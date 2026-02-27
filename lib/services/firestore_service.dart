@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 
 import 'package:lifeboard/core/constants.dart';
 import 'package:lifeboard/core/errors/app_exceptions.dart';
+import 'package:lifeboard/models/activity_model.dart';
 import 'package:lifeboard/models/board_model.dart';
 import 'package:lifeboard/models/comment_model.dart';
 import 'package:lifeboard/models/space_model.dart';
@@ -35,6 +36,9 @@ class FirestoreService {
   CollectionReference<Map<String, dynamic>> _commentsRef(
           String spaceId, String taskId) =>
       _tasksRef(spaceId).doc(taskId).collection('comments');
+
+  CollectionReference<Map<String, dynamic>> _activityRef(String spaceId) =>
+      _spacesRef.doc(spaceId).collection('activity');
 
   // ── Space CRUD ─────────────────────────────────────────────
 
@@ -502,6 +506,111 @@ class FirestoreService {
 
     // Delete user document
     await _usersRef.doc(userId).delete();
+  }
+
+  // ── Activity Feed ──────────────────────────────────────────
+
+  /// Streams activity for a space, ordered by most recent first.
+  Stream<List<ActivityModel>> getActivity(String spaceId, {int limit = 50}) {
+    return _activityRef(spaceId)
+        .orderBy('createdAt', descending: true)
+        .limit(limit)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => ActivityModel.fromFirestore(doc, spaceId: spaceId))
+            .toList());
+  }
+
+  /// Streams activity across multiple spaces, merged and sorted.
+  Stream<List<ActivityModel>> getActivityForSpaces(List<String> spaceIds,
+      {int limit = 50}) {
+    if (spaceIds.isEmpty) return Stream.value([]);
+
+    // Stream each space's activity and merge
+    final streams = spaceIds.map((id) => getActivity(id, limit: limit));
+    return streams.fold<Stream<List<ActivityModel>>>(
+      Stream.value([]),
+      (combined, stream) {
+        return combined.asyncExpand((existing) {
+          return stream.map((newItems) {
+            final merged = [...existing, ...newItems];
+            merged.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+            return merged.take(limit).toList();
+          });
+        });
+      },
+    );
+  }
+
+  /// Toggles a reaction on an activity item.
+  Future<void> toggleActivityReaction({
+    required String spaceId,
+    required String activityId,
+    required String emoji,
+    required String userId,
+  }) async {
+    final docRef = _activityRef(spaceId).doc(activityId);
+    final doc = await docRef.get();
+    if (!doc.exists) return;
+
+    final activity = ActivityModel.fromFirestore(doc, spaceId: spaceId);
+    final currentUsers = List<String>.from(activity.reactions[emoji] ?? []);
+
+    if (currentUsers.contains(userId)) {
+      currentUsers.remove(userId);
+    } else {
+      currentUsers.add(userId);
+    }
+
+    if (currentUsers.isEmpty) {
+      await docRef.update({'reactions.$emoji': FieldValue.delete()});
+    } else {
+      await docRef.update({'reactions.$emoji': currentUsers});
+    }
+  }
+
+  /// Gets unread activity count for a user across spaces.
+  /// Compares activity timestamps against user's last-read timestamp.
+  Future<int> getUnreadActivityCount({
+    required List<String> spaceIds,
+    required DateTime lastReadAt,
+  }) async {
+    int count = 0;
+    for (final spaceId in spaceIds) {
+      final snapshot = await _activityRef(spaceId)
+          .where('createdAt', isGreaterThan: Timestamp.fromDate(lastReadAt))
+          .count()
+          .get();
+      count += snapshot.count ?? 0;
+    }
+    return count;
+  }
+
+  /// Updates the user's last-read activity timestamp.
+  Future<void> updateLastReadActivity({required String userId}) async {
+    await _usersRef.doc(userId).set({
+      'lastActivityReadAt': Timestamp.fromDate(DateTime.now()),
+    }, SetOptions(merge: true));
+  }
+
+  /// Saves FCM token to user document for push notifications.
+  Future<void> saveFcmToken({
+    required String userId,
+    required String token,
+  }) async {
+    await _usersRef.doc(userId).set({
+      'fcmTokens': FieldValue.arrayUnion([token]),
+    }, SetOptions(merge: true));
+  }
+
+  /// Removes an FCM token from user document.
+  Future<void> removeFcmToken({
+    required String userId,
+    required String token,
+  }) async {
+    await _usersRef.doc(userId).update({
+      'fcmTokens': FieldValue.arrayRemove([token]),
+    });
   }
 
   // ── Invite Code Generation ─────────────────────────────────

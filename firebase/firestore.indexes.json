@@ -7,6 +7,13 @@
         { "fieldPath": "boardId", "order": "ASCENDING" },
         { "fieldPath": "order", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "activity",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

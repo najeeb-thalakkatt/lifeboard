@@ -70,6 +70,7 @@ class _CommentsSectionState extends ConsumerState<CommentsSection> {
       taskCommentsProvider((spaceId: widget.spaceId, taskId: widget.taskId)),
     );
     final currentUser = ref.watch(currentUserProvider).valueOrNull;
+    final colors = Theme.of(context).colorScheme;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -78,7 +79,7 @@ class _CommentsSectionState extends ConsumerState<CommentsSection> {
           'Comments',
           style: AppTextStyles.caption.copyWith(
             fontWeight: FontWeight.w600,
-            color: AppColors.primaryDark.withValues(alpha: 0.6),
+            color: colors.onSurface.withValues(alpha: 0.6),
             letterSpacing: 0.5,
           ),
         ),
@@ -99,25 +100,28 @@ class _CommentsSectionState extends ConsumerState<CommentsSection> {
             child: Text(
               'Could not load comments',
               style: AppTextStyles.bodyMedium.copyWith(
-                color: AppColors.primaryDark.withValues(alpha: 0.5),
+                color: colors.onSurface.withValues(alpha: 0.5),
               ),
             ),
           ),
           data: (comments) {
+            final isDark = Theme.of(context).brightness == Brightness.dark;
             if (comments.isEmpty) {
               return Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppColors.primaryLight.withValues(alpha: 0.3),
+                  color: colors.primaryContainer.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.divider),
+                  border: Border.all(
+                    color: isDark ? AppColors.darkDivider : AppColors.divider,
+                  ),
                 ),
                 child: Center(
                   child: Text(
                     'No comments yet. Start the conversation!',
                     style: AppTextStyles.bodyMedium.copyWith(
-                      color: AppColors.primaryDark.withValues(alpha: 0.4),
+                      color: colors.onSurface.withValues(alpha: 0.4),
                     ),
                   ),
                 ),
@@ -179,6 +183,7 @@ class _CommentBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isMe = comment.authorId == currentUserId;
+    final colors = Theme.of(context).colorScheme;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -198,14 +203,14 @@ class _CommentBubble extends StatelessWidget {
                     isMe ? 'You' : _shortName(comment.authorId),
                     style: AppTextStyles.caption.copyWith(
                       fontWeight: FontWeight.w600,
-                      color: AppColors.primaryDark,
+                      color: colors.primary,
                     ),
                   ),
                   const SizedBox(width: 8),
                   Text(
                     _relativeTime(comment.createdAt),
                     style: AppTextStyles.caption.copyWith(
-                      color: AppColors.primaryDark.withValues(alpha: 0.4),
+                      color: colors.onSurface.withValues(alpha: 0.4),
                     ),
                   ),
                 ],
@@ -217,13 +222,15 @@ class _CommentBubble extends StatelessWidget {
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 decoration: BoxDecoration(
                   color: isMe
-                      ? AppColors.primaryDark.withValues(alpha: 0.08)
-                      : AppColors.primaryLight.withValues(alpha: 0.5),
+                      ? colors.primary.withValues(alpha: 0.08)
+                      : colors.primaryContainer.withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
                   comment.text,
-                  style: AppTextStyles.bodyMedium,
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: colors.onSurface,
+                  ),
                 ),
               ),
               const SizedBox(height: 6),
@@ -259,6 +266,10 @@ class _ReactionBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final dividerColor = isDark ? AppColors.darkDivider : AppColors.divider;
+
     return Wrap(
       spacing: 6,
       runSpacing: 4,
@@ -272,16 +283,16 @@ class _ReactionBar extends StatelessWidget {
             onTap: () => onToggle(emoji),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 150),
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               decoration: BoxDecoration(
                 color: iReacted
-                    ? AppColors.primaryDark.withValues(alpha: 0.12)
-                    : AppColors.surface,
+                    ? colors.primary.withValues(alpha: 0.12)
+                    : colors.surface,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: iReacted
-                      ? AppColors.primaryDark.withValues(alpha: 0.4)
-                      : AppColors.divider,
+                      ? colors.primary.withValues(alpha: 0.4)
+                      : dividerColor,
                 ),
               ),
               child: Row(
@@ -295,8 +306,8 @@ class _ReactionBar extends StatelessWidget {
                       fontWeight:
                           iReacted ? FontWeight.w600 : FontWeight.normal,
                       color: iReacted
-                          ? AppColors.primaryDark
-                          : AppColors.primaryDark.withValues(alpha: 0.5),
+                          ? colors.primary
+                          : colors.onSurface.withValues(alpha: 0.5),
                     ),
                   ),
                 ],
@@ -326,25 +337,31 @@ class _AddReactionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: () => _showReactionPicker(context),
+      behavior: HitTestBehavior.opaque,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: colors.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.divider),
+          border: Border.all(
+            color: isDark ? AppColors.darkDivider : AppColors.divider,
+          ),
         ),
         child: Icon(
           Icons.add,
-          size: 14,
-          color: AppColors.primaryDark.withValues(alpha: 0.4),
+          size: 16,
+          color: colors.onSurface.withValues(alpha: 0.4),
         ),
       ),
     );
   }
 
   void _showReactionPicker(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -366,8 +383,8 @@ class _AddReactionButton extends StatelessWidget {
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         color: existingEmojis.contains(emoji)
-                            ? AppColors.primaryDark.withValues(alpha: 0.1)
-                            : AppColors.primaryLight.withValues(alpha: 0.3),
+                            ? colors.primary.withValues(alpha: 0.1)
+                            : colors.primaryContainer.withValues(alpha: 0.3),
                         shape: BoxShape.circle,
                       ),
                       child: Text(emoji, style: const TextStyle(fontSize: 24)),
@@ -396,23 +413,29 @@ class _CommentInput extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 4),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: colors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.divider),
+        border: Border.all(
+          color: isDark ? AppColors.darkDivider : AppColors.divider,
+        ),
       ),
       child: Row(
         children: [
           Expanded(
             child: TextField(
               controller: controller,
-              style: AppTextStyles.bodyMedium,
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: colors.onSurface,
+              ),
               decoration: InputDecoration(
                 hintText: 'Write a comment...',
                 hintStyle: AppTextStyles.bodyMedium.copyWith(
-                  color: AppColors.primaryDark.withValues(alpha: 0.4),
+                  color: colors.onSurface.withValues(alpha: 0.4),
                 ),
                 border: InputBorder.none,
                 enabledBorder: InputBorder.none,
@@ -438,7 +461,7 @@ class _CommentInput extends StatelessWidget {
                 )
               : IconButton(
                   icon: const Icon(Icons.send_rounded),
-                  color: AppColors.primaryDark,
+                  color: colors.primary,
                   onPressed: onSend,
                   tooltip: 'Send comment',
                 ),

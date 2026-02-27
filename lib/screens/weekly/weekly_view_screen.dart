@@ -20,6 +20,7 @@ class WeeklyViewScreen extends ConsumerWidget {
     final allTasksAsync = ref.watch(allUserTasksProvider);
     final isCurrentWeek =
         mondayOf(DateTime.now()).isAtSameMomentAs(weekStart);
+    final colors = Theme.of(context).colorScheme;
 
     return Scaffold(
       body: allTasksAsync.when(
@@ -28,11 +29,11 @@ class WeeklyViewScreen extends ConsumerWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.error_outline, size: 48, color: AppColors.error),
+              Icon(Icons.error_outline, size: 48, color: colors.error),
               const SizedBox(height: 16),
               Text(
                 'Could not load tasks',
-                style: GoogleFonts.inter(fontSize: 14, color: AppColors.textPrimary),
+                style: GoogleFonts.inter(fontSize: 14, color: colors.onSurface),
               ),
               const SizedBox(height: 16),
               OutlinedButton.icon(
@@ -50,7 +51,7 @@ class WeeklyViewScreen extends ConsumerWidget {
           final summary = ref.watch(weeklySummaryProvider);
 
           return RefreshIndicator(
-            color: AppColors.primaryDark,
+            color: colors.primary,
             onRefresh: () async {
               ref.invalidate(allUserTasksProvider);
               await Future<void>.delayed(const Duration(milliseconds: 500));
@@ -175,6 +176,7 @@ class _WeekHeader extends ConsumerWidget {
         '${dateFormat.format(weekStart)} \u{2013} ${dateFormat.format(weekEnd)}';
     final isCurrentWeek =
         mondayOf(DateTime.now()).isAtSameMomentAs(weekStart);
+    final colors = Theme.of(context).colorScheme;
 
     return Padding(
       padding: EdgeInsets.fromLTRB(24, topPadding + 16, 24, 8),
@@ -186,7 +188,7 @@ class _WeekHeader extends ConsumerWidget {
             style: GoogleFonts.nunito(
               fontSize: 26,
               fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
+              color: colors.onSurface,
             ),
           ),
           const SizedBox(height: 8),
@@ -196,7 +198,7 @@ class _WeekHeader extends ConsumerWidget {
                 onPressed: () =>
                     ref.read(selectedWeekProvider.notifier).goToPreviousWeek(),
                 icon: const Icon(Icons.chevron_left),
-                color: AppColors.primaryDark,
+                color: colors.primary,
                 tooltip: 'Previous week',
               ),
               Expanded(
@@ -206,7 +208,7 @@ class _WeekHeader extends ConsumerWidget {
                   style: GoogleFonts.inter(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
+                    color: colors.onSurface,
                   ),
                 ),
               ),
@@ -214,7 +216,7 @@ class _WeekHeader extends ConsumerWidget {
                 onPressed: () =>
                     ref.read(selectedWeekProvider.notifier).goToNextWeek(),
                 icon: const Icon(Icons.chevron_right),
-                color: AppColors.primaryDark,
+                color: colors.primary,
                 tooltip: 'Next week',
               ),
             ],
@@ -226,7 +228,7 @@ class _WeekHeader extends ConsumerWidget {
                     ref.read(selectedWeekProvider.notifier).goToCurrentWeek(),
                 child: Text(
                   'Back to this week',
-                  style: GoogleFonts.inter(fontSize: 13, color: AppColors.primaryDark),
+                  style: GoogleFonts.inter(fontSize: 13, color: colors.primary),
                 ),
               ),
             ),
@@ -247,12 +249,14 @@ class _WeeklySummaryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final allDone = total > 0 && completed == total;
     final progress = total > 0 ? completed / total : 0.0;
+    final colors = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Card(
         elevation: 2,
-        shadowColor: AppColors.cardShadow,
+        shadowColor: isDark ? AppColors.darkCardShadow : AppColors.cardShadow,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Padding(
           padding: const EdgeInsets.all(20),
@@ -263,7 +267,7 @@ class _WeeklySummaryCard extends StatelessWidget {
                 children: [
                   Icon(
                     allDone ? Icons.celebration : Icons.bar_chart_rounded,
-                    color: allDone ? AppColors.accentWarm : AppColors.primaryDark,
+                    color: allDone ? AppColors.accentWarm : colors.primary,
                     size: 24,
                   ),
                   const SizedBox(width: 10),
@@ -277,7 +281,7 @@ class _WeeklySummaryCard extends StatelessWidget {
                       style: GoogleFonts.nunito(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
+                        color: colors.onSurface,
                       ),
                     ),
                   ),
@@ -290,9 +294,9 @@ class _WeeklySummaryCard extends StatelessWidget {
                   child: LinearProgressIndicator(
                     value: progress,
                     minHeight: 8,
-                    backgroundColor: AppColors.primaryLight,
+                    backgroundColor: colors.primaryContainer,
                     valueColor: AlwaysStoppedAnimation<Color>(
-                      allDone ? AppColors.accentWarm : AppColors.primaryDark,
+                      allDone ? AppColors.accentWarm : colors.primary,
                     ),
                   ),
                 ),
@@ -319,25 +323,26 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
       child: Row(
         children: [
-          Icon(icon, size: 20, color: AppColors.primaryDark),
+          Icon(icon, size: 20, color: colors.primary),
           const SizedBox(width: 8),
           Text(
             title,
             style: GoogleFonts.nunito(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
+              color: colors.onSurface,
             ),
           ),
           const SizedBox(width: 8),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
             decoration: BoxDecoration(
-              color: AppColors.primaryLight,
+              color: colors.primaryContainer,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
@@ -345,7 +350,7 @@ class _SectionHeader extends StatelessWidget {
               style: GoogleFonts.inter(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: AppColors.primaryDark,
+                color: colors.primary,
               ),
             ),
           ),
@@ -369,7 +374,7 @@ class _EmptySectionHint extends StatelessWidget {
         message,
         style: GoogleFonts.inter(
           fontSize: 13,
-          color: AppColors.textPrimary.withValues(alpha: 0.5),
+          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
           fontStyle: FontStyle.italic,
         ),
       ),
@@ -410,10 +415,12 @@ class _WeeklyTaskCard extends StatelessWidget {
     final statusLabel = StatusDisplayName.fromStatus(task.status);
     final hasOverdueDueDate =
         task.dueDate != null && task.dueDate!.isBefore(DateTime.now()) && !isDone;
+    final colors = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Card(
       elevation: 1,
-      shadowColor: AppColors.cardShadow,
+      shadowColor: isDark ? AppColors.darkCardShadow : AppColors.cardShadow,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       margin: const EdgeInsets.only(bottom: 8),
       child: InkWell(
@@ -445,8 +452,8 @@ class _WeeklyTaskCard extends StatelessWidget {
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
                         color: isDone
-                            ? AppColors.textPrimary.withValues(alpha: 0.5)
-                            : AppColors.textPrimary,
+                            ? colors.onSurface.withValues(alpha: 0.5)
+                            : colors.onSurface,
                         decoration: isDone ? TextDecoration.lineThrough : null,
                       ),
                       maxLines: 2,
@@ -477,8 +484,8 @@ class _WeeklyTaskCard extends StatelessWidget {
                             Icons.calendar_today,
                             size: 12,
                             color: hasOverdueDueDate
-                                ? AppColors.error
-                                : AppColors.textPrimary.withValues(alpha: 0.5),
+                                ? colors.error
+                                : colors.onSurface.withValues(alpha: 0.5),
                           ),
                           const SizedBox(width: 4),
                           Text(
@@ -486,8 +493,8 @@ class _WeeklyTaskCard extends StatelessWidget {
                             style: GoogleFonts.inter(
                               fontSize: 11,
                               color: hasOverdueDueDate
-                                  ? AppColors.error
-                                  : AppColors.textPrimary.withValues(alpha: 0.5),
+                                  ? colors.error
+                                  : colors.onSurface.withValues(alpha: 0.5),
                             ),
                           ),
                         ],
@@ -506,7 +513,7 @@ class _WeeklyTaskCard extends StatelessWidget {
 
               Icon(
                 Icons.chevron_right,
-                color: AppColors.textPrimary.withValues(alpha: 0.3),
+                color: colors.onSurface.withValues(alpha: 0.3),
                 size: 20,
               ),
             ],
@@ -523,7 +530,7 @@ class _WeeklyTaskCard extends StatelessWidget {
       case 'in_progress':
         return AppColors.accentWarm;
       default:
-        return AppColors.primaryDark;
+        return AppColors.statusTodo;
     }
   }
 }
@@ -536,6 +543,7 @@ class _EndOfWeekPrompt extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final colors = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Card(
@@ -557,7 +565,7 @@ class _EndOfWeekPrompt extends ConsumerWidget {
                       style: GoogleFonts.nunito(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
+                        color: colors.onSurface,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -565,7 +573,7 @@ class _EndOfWeekPrompt extends ConsumerWidget {
                       'Pick tasks for next week and stay on track!',
                       style: GoogleFonts.inter(
                         fontSize: 12,
-                        color: AppColors.textPrimary.withValues(alpha: 0.6),
+                        color: colors.onSurface.withValues(alpha: 0.6),
                       ),
                     ),
                   ],

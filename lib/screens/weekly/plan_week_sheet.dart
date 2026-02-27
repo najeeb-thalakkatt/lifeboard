@@ -90,6 +90,7 @@ class _PlanWeekSheetState extends ConsumerState<PlanWeekSheet> {
         '${dateFormat.format(weekStart)} \u{2013} ${dateFormat.format(weekEnd)}';
 
     final backlog = ref.watch(backlogTasksProvider);
+    final colors = Theme.of(context).colorScheme;
 
     return DraggableScrollableSheet(
       expand: false,
@@ -105,7 +106,7 @@ class _PlanWeekSheetState extends ConsumerState<PlanWeekSheet> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: AppColors.textPrimary.withValues(alpha: 0.2),
+                color: colors.onSurface.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -121,7 +122,7 @@ class _PlanWeekSheetState extends ConsumerState<PlanWeekSheet> {
                     style: GoogleFonts.nunito(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
+                      color: colors.onSurface,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -129,7 +130,7 @@ class _PlanWeekSheetState extends ConsumerState<PlanWeekSheet> {
                     weekLabel,
                     style: GoogleFonts.inter(
                       fontSize: 14,
-                      color: AppColors.textPrimary.withValues(alpha: 0.6),
+                      color: colors.onSurface.withValues(alpha: 0.6),
                     ),
                   ),
                 ],
@@ -149,15 +150,14 @@ class _PlanWeekSheetState extends ConsumerState<PlanWeekSheet> {
                             Icon(
                               Icons.check_circle_outline,
                               size: 48,
-                              color: AppColors.textPrimary.withValues(alpha: 0.3),
+                              color: colors.onSurface.withValues(alpha: 0.3),
                             ),
                             const SizedBox(height: 12),
                             Text(
                               'No backlog tasks available',
                               style: GoogleFonts.inter(
                                 fontSize: 14,
-                                color:
-                                    AppColors.textPrimary.withValues(alpha: 0.5),
+                                color: colors.onSurface.withValues(alpha: 0.5),
                               ),
                             ),
                             const SizedBox(height: 4),
@@ -165,8 +165,7 @@ class _PlanWeekSheetState extends ConsumerState<PlanWeekSheet> {
                               'Create tasks on your boards first.',
                               style: GoogleFonts.inter(
                                 fontSize: 13,
-                                color:
-                                    AppColors.textPrimary.withValues(alpha: 0.4),
+                                color: colors.onSurface.withValues(alpha: 0.4),
                               ),
                             ),
                           ],
@@ -259,16 +258,20 @@ class _BacklogTaskTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final dividerColor = isDark ? AppColors.darkDivider : AppColors.divider;
+
     return Card(
       elevation: isSelected ? 2 : 0,
-      shadowColor: AppColors.cardShadow,
-      color: isSelected ? AppColors.primaryLight : null,
+      shadowColor: isDark ? AppColors.darkCardShadow : AppColors.cardShadow,
+      color: isSelected ? colors.primaryContainer : null,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
           color: isSelected
-              ? AppColors.primaryDark.withValues(alpha: 0.3)
-              : AppColors.divider,
+              ? colors.primary.withValues(alpha: 0.3)
+              : dividerColor,
         ),
       ),
       margin: const EdgeInsets.only(bottom: 8),
@@ -286,11 +289,11 @@ class _BacklogTaskTile extends StatelessWidget {
                 height: 24,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: isSelected ? AppColors.primaryDark : Colors.transparent,
+                  color: isSelected ? colors.primary : Colors.transparent,
                   border: Border.all(
                     color: isSelected
-                        ? AppColors.primaryDark
-                        : AppColors.textPrimary.withValues(alpha: 0.3),
+                        ? colors.primary
+                        : colors.onSurface.withValues(alpha: 0.3),
                     width: 2,
                   ),
                 ),
@@ -310,7 +313,7 @@ class _BacklogTaskTile extends StatelessWidget {
                       style: GoogleFonts.inter(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
-                        color: AppColors.textPrimary,
+                        color: colors.onSurface,
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -322,15 +325,14 @@ class _BacklogTaskTile extends StatelessWidget {
                           Icon(
                             Icons.calendar_today,
                             size: 12,
-                            color: AppColors.textPrimary.withValues(alpha: 0.5),
+                            color: colors.onSurface.withValues(alpha: 0.5),
                           ),
                           const SizedBox(width: 4),
                           Text(
                             'Due ${DateFormat('MMM d').format(task.dueDate!)}',
                             style: GoogleFonts.inter(
                               fontSize: 11,
-                              color:
-                                  AppColors.textPrimary.withValues(alpha: 0.5),
+                              color: colors.onSurface.withValues(alpha: 0.5),
                             ),
                           ),
                         ],

@@ -46,6 +46,16 @@ final authNotifierProvider = Provider<AuthNotifier>((ref) {
   return notifier;
 });
 
+/// Streams a user's Firestore document by UID.
+final userByIdProvider =
+    StreamProvider.family<UserModel?, String>((ref, uid) {
+  return FirebaseFirestore.instance
+      .collection('users')
+      .doc(uid)
+      .snapshots()
+      .map((doc) => doc.exists ? UserModel.fromFirestore(doc) : null);
+});
+
 /// Streams the current user's Firestore document as a [UserModel].
 final currentUserProvider = StreamProvider<UserModel?>((ref) {
   final user = FirebaseAuth.instance.currentUser;

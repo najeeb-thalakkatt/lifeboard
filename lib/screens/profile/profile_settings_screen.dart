@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/services.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -56,9 +57,10 @@ class _ProfileBody extends ConsumerWidget {
     final themeMode = ref.watch(themeModeProvider);
     final statsAsync = ref.watch(spaceStatsProvider);
     final topPadding = MediaQuery.of(context).padding.top;
+    final colors = Theme.of(context).colorScheme;
 
     return RefreshIndicator(
-      color: AppColors.primaryDark,
+      color: colors.primary,
       onRefresh: () async {
         ref.invalidate(currentUserProvider);
         ref.invalidate(userSpacesProvider);
@@ -74,7 +76,7 @@ class _ProfileBody extends ConsumerWidget {
             style: GoogleFonts.nunito(
               fontSize: 26,
               fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
+              color: colors.onSurface,
             ),
           ),
           const SizedBox(height: 20),
@@ -133,7 +135,7 @@ class _SectionHeader extends StatelessWidget {
         style: GoogleFonts.nunito(
           fontSize: 18,
           fontWeight: FontWeight.bold,
-          color: AppColors.textPrimary,
+          color: Theme.of(context).colorScheme.onSurface,
         ),
       ),
     );
@@ -217,6 +219,7 @@ class _ProfileCardState extends ConsumerState<_ProfileCard> {
 
   void _showMoodEmojiPicker() {
     const moods = ['😊', '😎', '🥰', '🤔', '😴', '🔥', '💪', '🎉', '☕', '🌈', '✨', '🧘'];
+    final colors = Theme.of(context).colorScheme;
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -234,7 +237,7 @@ class _ProfileCardState extends ConsumerState<_ProfileCard> {
                 style: GoogleFonts.nunito(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+                  color: colors.onSurface,
                 ),
               ),
               const SizedBox(height: 16),
@@ -273,6 +276,7 @@ class _ProfileCardState extends ConsumerState<_ProfileCard> {
   @override
   Widget build(BuildContext context) {
     final user = widget.user;
+    final colors = Theme.of(context).colorScheme;
 
     return Card(
       margin: EdgeInsets.zero,
@@ -296,8 +300,8 @@ class _ProfileCardState extends ConsumerState<_ProfileCard> {
                     right: 0,
                     child: Container(
                       padding: const EdgeInsets.all(4),
-                      decoration: const BoxDecoration(
-                        color: AppColors.primaryDark,
+                      decoration: BoxDecoration(
+                        color: colors.primary,
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
@@ -338,11 +342,11 @@ class _ProfileCardState extends ConsumerState<_ProfileCard> {
                   ),
                   const SizedBox(width: 8),
                   IconButton(
-                    icon: const Icon(Icons.check, color: AppColors.primaryDark),
+                    icon: Icon(Icons.check, color: colors.primary),
                     onPressed: _saveName,
                   ),
                   IconButton(
-                    icon: Icon(Icons.close, color: Colors.grey[600]),
+                    icon: Icon(Icons.close, color: colors.onSurface.withValues(alpha: 0.5)),
                     onPressed: () => setState(() => _isEditingName = false),
                   ),
                 ],
@@ -358,14 +362,14 @@ class _ProfileCardState extends ConsumerState<_ProfileCard> {
                       style: GoogleFonts.nunito(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
+                        color: colors.onSurface,
                       ),
                     ),
                     const SizedBox(width: 6),
                     Icon(
                       Icons.edit,
                       size: 16,
-                      color: AppColors.textPrimary.withValues(alpha: 0.5),
+                      color: colors.onSurface.withValues(alpha: 0.5),
                     ),
                   ],
                 ),
@@ -378,7 +382,7 @@ class _ProfileCardState extends ConsumerState<_ProfileCard> {
               user?.email ?? '',
               style: GoogleFonts.inter(
                 fontSize: 14,
-                color: AppColors.textPrimary.withValues(alpha: 0.6),
+                color: colors.onSurface.withValues(alpha: 0.6),
               ),
             ),
             const SizedBox(height: 12),
@@ -425,15 +429,19 @@ class _MoodChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primaryLight : AppColors.surface,
+          color: isSelected ? colors.primaryContainer : colors.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? AppColors.primaryDark : AppColors.divider,
+            color: isSelected
+                ? colors.primary
+                : (isDark ? AppColors.darkDivider : AppColors.divider),
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -454,6 +462,7 @@ class _StatsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Card(
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -468,7 +477,7 @@ class _StatsCard extends StatelessWidget {
           ),
           error: (_, __) => Text(
             'Could not load stats',
-            style: GoogleFonts.inter(color: AppColors.error),
+            style: GoogleFonts.inter(color: colors.error),
           ),
           data: (stats) => Column(
             children: [
@@ -522,6 +531,7 @@ class _StatTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Column(
       children: [
         Text(icon, style: const TextStyle(fontSize: 28)),
@@ -531,14 +541,14 @@ class _StatTile extends StatelessWidget {
           style: GoogleFonts.nunito(
             fontSize: 24,
             fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
+            color: colors.onSurface,
           ),
         ),
         Text(
           label,
           style: GoogleFonts.inter(
             fontSize: 12,
-            color: AppColors.textPrimary.withValues(alpha: 0.6),
+            color: colors.onSurface.withValues(alpha: 0.6),
           ),
         ),
       ],
@@ -555,6 +565,8 @@ class _BadgesRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final badges = <_Badge>[
       _Badge(icon: '👶', name: 'First Steps', earned: totalCompleted >= 1),
       _Badge(icon: '🤝', name: 'Team Player', earned: totalCompleted >= 10),
@@ -571,7 +583,7 @@ class _BadgesRow extends StatelessWidget {
           style: GoogleFonts.nunito(
             fontSize: 15,
             fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
+            color: colors.onSurface,
           ),
         ),
         const SizedBox(height: 10),
@@ -586,8 +598,8 @@ class _BadgesRow extends StatelessWidget {
                 height: 56,
                 decoration: BoxDecoration(
                   color: badge.earned
-                      ? AppColors.primaryLight
-                      : Colors.grey[100],
+                      ? colors.primaryContainer
+                      : (isDark ? AppColors.darkCardSurface : Colors.grey[100]),
                   borderRadius: BorderRadius.circular(12),
                   border: badge.earned
                       ? Border.all(color: AppColors.accentWarm, width: 2)
@@ -627,6 +639,7 @@ class _SpacesList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final colors = Theme.of(context).colorScheme;
     if (spaces.isEmpty) {
       return Card(
         margin: EdgeInsets.zero,
@@ -636,7 +649,7 @@ class _SpacesList extends ConsumerWidget {
           child: Text(
             'No spaces yet.',
             style: GoogleFonts.inter(
-              color: AppColors.textPrimary.withValues(alpha: 0.6),
+              color: colors.onSurface.withValues(alpha: 0.6),
             ),
           ),
         ),
@@ -670,6 +683,7 @@ class _SpaceTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final member = space.members[userId];
     final isOwner = member?.role == 'owner';
+    final colors = Theme.of(context).colorScheme;
 
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -677,42 +691,144 @@ class _SpaceTile extends ConsumerWidget {
         width: 40,
         height: 40,
         decoration: BoxDecoration(
-          color: AppColors.primaryLight,
+          color: colors.primaryContainer,
           borderRadius: BorderRadius.circular(10),
         ),
-        child: const Icon(Icons.workspaces_outlined, color: AppColors.primaryDark, size: 20),
+        child: Icon(Icons.workspaces_outlined, color: colors.primary, size: 20),
       ),
       title: Text(
         space.name,
         style: GoogleFonts.inter(
           fontSize: 15,
           fontWeight: FontWeight.w600,
-          color: AppColors.textPrimary,
+          color: colors.onSurface,
         ),
       ),
       subtitle: Text(
         '${space.members.length} member${space.members.length == 1 ? '' : 's'} · ${isOwner ? 'Owner' : 'Member'}',
         style: GoogleFonts.inter(
           fontSize: 12,
-          color: AppColors.textPrimary.withValues(alpha: 0.5),
+          color: colors.onSurface.withValues(alpha: 0.5),
         ),
       ),
       trailing: PopupMenuButton<String>(
-        icon: Icon(Icons.more_vert, color: AppColors.textPrimary.withValues(alpha: 0.5)),
+        icon: Icon(Icons.more_vert, color: colors.onSurface.withValues(alpha: 0.5)),
         onSelected: (value) {
-          if (value == 'leave') {
+          if (value == 'invite') {
+            _showInviteCode(context);
+          } else if (value == 'leave') {
             _confirmLeave(context, ref);
           } else if (value == 'delete') {
             _confirmDelete(context, ref);
           }
         },
         itemBuilder: (ctx) => [
+          const PopupMenuItem(value: 'invite', child: Text('Invite code')),
           const PopupMenuItem(value: 'leave', child: Text('Leave space')),
           if (isOwner)
             const PopupMenuItem(
               value: 'delete',
               child: Text('Delete space', style: TextStyle(color: AppColors.error)),
             ),
+        ],
+      ),
+    );
+  }
+
+  void _showInviteCode(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(Icons.person_add_alt_1_rounded, color: colors.primary),
+            const SizedBox(width: 8),
+            Text(
+              'Invite to "${space.name}"',
+              style: GoogleFonts.nunito(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Share this code with your partner so they can join your space.',
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                color: colors.onSurface.withValues(alpha: 0.6),
+              ),
+            ),
+            const SizedBox(height: 20),
+            GestureDetector(
+              onTap: () {
+                Clipboard.setData(ClipboardData(text: space.inviteCode));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Invite code copied!',
+                      style: GoogleFonts.inter(color: Colors.white),
+                    ),
+                    backgroundColor: colors.primary,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                decoration: BoxDecoration(
+                  color: colors.primaryContainer.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: colors.primary.withValues(alpha: 0.2),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      space.inviteCode,
+                      style: GoogleFonts.nunito(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 6,
+                        color: colors.onSurface,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Icon(
+                      Icons.copy_rounded,
+                      color: colors.primary.withValues(alpha: 0.6),
+                      size: 20,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Tap to copy',
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                color: colors.onSurface.withValues(alpha: 0.4),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Done'),
+          ),
         ],
       ),
     );
@@ -779,6 +895,7 @@ class _PreferencesCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final pushEnabled = user?.notificationPrefs.pushEnabled ?? true;
     final emailEnabled = user?.notificationPrefs.emailEnabled ?? true;
+    final colors = Theme.of(context).colorScheme;
 
     return Card(
       margin: EdgeInsets.zero,
@@ -787,16 +904,16 @@ class _PreferencesCard extends ConsumerWidget {
         children: [
           // ── Theme Toggle ──────────────────────────────────
           SwitchListTile(
-            secondary: const Icon(Icons.dark_mode_outlined, color: AppColors.primaryDark),
+            secondary: Icon(Icons.dark_mode_outlined, color: colors.primary),
             title: Text(
               'Dark mode',
               style: GoogleFonts.inter(
                 fontSize: 15,
-                color: AppColors.textPrimary,
+                color: colors.onSurface,
               ),
             ),
             value: themeMode == ThemeMode.dark,
-            activeThumbColor: AppColors.primaryDark,
+            activeThumbColor: colors.primary,
             onChanged: (val) {
               ref.read(themeModeProvider.notifier)
                   .setThemeMode(val ? ThemeMode.dark : ThemeMode.light);
@@ -806,16 +923,16 @@ class _PreferencesCard extends ConsumerWidget {
 
           // ── Push Notifications ────────────────────────────
           SwitchListTile(
-            secondary: const Icon(Icons.notifications_outlined, color: AppColors.primaryDark),
+            secondary: Icon(Icons.notifications_outlined, color: colors.primary),
             title: Text(
               'Push notifications',
               style: GoogleFonts.inter(
                 fontSize: 15,
-                color: AppColors.textPrimary,
+                color: colors.onSurface,
               ),
             ),
             value: pushEnabled,
-            activeThumbColor: AppColors.primaryDark,
+            activeThumbColor: colors.primary,
             onChanged: (val) {
               ref.read(profileActionProvider.notifier).updateNotificationPrefs(
                     pushEnabled: val,
@@ -827,16 +944,16 @@ class _PreferencesCard extends ConsumerWidget {
 
           // ── Email Notifications ───────────────────────────
           SwitchListTile(
-            secondary: const Icon(Icons.email_outlined, color: AppColors.primaryDark),
+            secondary: Icon(Icons.email_outlined, color: colors.primary),
             title: Text(
               'Email notifications',
               style: GoogleFonts.inter(
                 fontSize: 15,
-                color: AppColors.textPrimary,
+                color: colors.onSurface,
               ),
             ),
             value: emailEnabled,
-            activeThumbColor: AppColors.primaryDark,
+            activeThumbColor: colors.primary,
             onChanged: (val) {
               ref.read(profileActionProvider.notifier).updateNotificationPrefs(
                     pushEnabled: pushEnabled,
@@ -861,6 +978,7 @@ class _AccountActionsCard extends ConsumerWidget {
     final isEmailAuth = FirebaseAuth.instance.currentUser?.providerData
             .any((p) => p.providerId == 'password') ??
         false;
+    final colors = Theme.of(context).colorScheme;
 
     return Card(
       margin: EdgeInsets.zero,
@@ -870,12 +988,12 @@ class _AccountActionsCard extends ConsumerWidget {
           // ── Change Password ───────────────────────────────
           if (isEmailAuth) ...[
             ListTile(
-              leading: const Icon(Icons.lock_outline, color: AppColors.primaryDark),
+              leading: Icon(Icons.lock_outline, color: colors.primary),
               title: Text(
                 'Change password',
-                style: GoogleFonts.inter(fontSize: 15, color: AppColors.textPrimary),
+                style: GoogleFonts.inter(fontSize: 15, color: colors.onSurface),
               ),
-              trailing: const Icon(Icons.chevron_right, color: AppColors.divider),
+              trailing: Icon(Icons.chevron_right, color: colors.onSurface.withValues(alpha: 0.3)),
               onTap: () => _showChangePasswordDialog(context, ref),
             ),
             const Divider(height: 1, indent: 16, endIndent: 16),
@@ -883,12 +1001,12 @@ class _AccountActionsCard extends ConsumerWidget {
 
           // ── Sign Out ──────────────────────────────────────
           ListTile(
-            leading: const Icon(Icons.logout, color: AppColors.primaryDark),
+            leading: Icon(Icons.logout, color: colors.primary),
             title: Text(
               'Sign out',
-              style: GoogleFonts.inter(fontSize: 15, color: AppColors.textPrimary),
+              style: GoogleFonts.inter(fontSize: 15, color: colors.onSurface),
             ),
-            trailing: const Icon(Icons.chevron_right, color: AppColors.divider),
+            trailing: Icon(Icons.chevron_right, color: colors.onSurface.withValues(alpha: 0.3)),
             onTap: () => _confirmSignOut(context, ref),
           ),
           const Divider(height: 1, indent: 16, endIndent: 16),
@@ -900,7 +1018,7 @@ class _AccountActionsCard extends ConsumerWidget {
               'Delete account',
               style: GoogleFonts.inter(fontSize: 15, color: AppColors.error),
             ),
-            trailing: const Icon(Icons.chevron_right, color: AppColors.divider),
+            trailing: Icon(Icons.chevron_right, color: colors.onSurface.withValues(alpha: 0.3)),
             onTap: () => _confirmDeleteAccount(context, ref),
           ),
         ],
@@ -1065,7 +1183,7 @@ class _ErrorCard extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(20),
-        child: Text(message, style: GoogleFonts.inter(color: AppColors.error)),
+        child: Text(message, style: GoogleFonts.inter(color: Theme.of(context).colorScheme.error)),
       ),
     );
   }

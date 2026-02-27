@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 
 import 'package:lifeboard/models/space_model.dart';
 import 'package:lifeboard/providers/auth_provider.dart';
+import 'package:lifeboard/providers/dashboard_provider.dart';
 import 'package:lifeboard/providers/space_provider.dart';
 import 'package:lifeboard/theme/app_colors.dart';
 
@@ -28,43 +29,56 @@ class HomeDashboardScreen extends ConsumerWidget {
 
     final firstName = displayName.split(' ').first;
 
-    return Scaffold(
-      body: RefreshIndicator(
-        color: AppColors.primaryDark,
-        onRefresh: () async {
-          ref.invalidate(userSpacesProvider);
-          ref.invalidate(currentUserProvider);
-          // Give Firestore a moment to refetch
-          await Future<void>.delayed(const Duration(milliseconds: 500));
-        },
-        child: CustomScrollView(
-          slivers: [
-            // ── Welcome Header ──────────────────────────────────
-            SliverToBoxAdapter(
-              child: _WelcomeHeader(firstName: firstName),
-            ),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final gradientColors = isDark
+        ? [AppColors.darkGradientTop, AppColors.darkGradientBottom]
+        : [AppColors.gradientTop, AppColors.gradientBottom];
 
-            // ── Space List ──────────────────────────────────────
-            spacesAsync.when(
-              loading: () => const SliverFillRemaining(
-                child: Center(child: CircularProgressIndicator()),
+    return Scaffold(
+      body: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: gradientColors,
+          ),
+        ),
+        child: RefreshIndicator(
+          color: Theme.of(context).colorScheme.primary,
+          onRefresh: () async {
+            ref.invalidate(userSpacesProvider);
+            ref.invalidate(currentUserProvider);
+            await Future<void>.delayed(const Duration(milliseconds: 500));
+          },
+          child: CustomScrollView(
+            slivers: [
+              // ── Welcome Header ──────────────────────────────────
+              SliverToBoxAdapter(
+                child: _WelcomeHeader(firstName: firstName),
               ),
-              error: (error, _) => SliverFillRemaining(
-                child: _ErrorView(
-                  message: 'Could not load spaces',
-                  onRetry: () => ref.invalidate(userSpacesProvider),
+
+              // ── Space List ──────────────────────────────────────
+              spacesAsync.when(
+                loading: () => const SliverFillRemaining(
+                  child: Center(child: CircularProgressIndicator()),
                 ),
+                error: (error, _) => SliverFillRemaining(
+                  child: _ErrorView(
+                    message: 'Could not load spaces',
+                    onRetry: () => ref.invalidate(userSpacesProvider),
+                  ),
+                ),
+                data: (spaces) {
+                  if (spaces.isEmpty) {
+                    return const SliverFillRemaining(
+                      child: _EmptySpacesView(),
+                    );
+                  }
+                  return _SpaceGridSliver(spaces: spaces);
+                },
               ),
-              data: (spaces) {
-                if (spaces.isEmpty) {
-                  return const SliverFillRemaining(
-                    child: _EmptySpacesView(),
-                  );
-                }
-                return _SpaceGridSliver(spaces: spaces);
-              },
-            ),
-          ],
+            ],
+          ),
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
@@ -85,6 +99,7 @@ class _WelcomeHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final topPadding = MediaQuery.of(context).padding.top;
+    final colors = Theme.of(context).colorScheme;
     return Padding(
       padding: EdgeInsets.fromLTRB(24, topPadding + 16, 24, 8),
       child: Column(
@@ -97,7 +112,7 @@ class _WelcomeHeader extends StatelessWidget {
             style: GoogleFonts.nunito(
               fontSize: 26,
               fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
+              color: colors.onSurface,
             ),
           ),
           const SizedBox(height: 4),
@@ -105,7 +120,7 @@ class _WelcomeHeader extends StatelessWidget {
             'Your spaces',
             style: GoogleFonts.inter(
               fontSize: 14,
-              color: AppColors.textPrimary.withValues(alpha: 0.6),
+              color: colors.onSurface.withValues(alpha: 0.6),
             ),
           ),
         ],
@@ -134,10 +149,14 @@ class _SpaceGridSliver extends StatelessWidget {
               crossAxisCount: crossAxisCount,
               mainAxisSpacing: 12,
               crossAxisSpacing: 12,
-              childAspectRatio: crossAxisCount == 1 ? 2.4 : 1.6,
+              childAspectRatio: crossAxisCount == 1 ? 1.9 : 1.3,
             ),
             delegate: SliverChildBuilderDelegate(
-              (context, index) => _SpaceCard(space: spaces[index]),
+              (context, index) => _SpaceCard(
+                space: spaces[index],
+                accentColor: AppColors.spaceAccents[
+                    index % AppColors.spaceAccents.length],
+              ),
               childCount: spaces.length,
             ),
           );
@@ -155,112 +174,174 @@ class _SpaceGridSliver extends StatelessWidget {
 
 // ── Space Card ────────────────────────────────────────────────────
 
-class _SpaceCard extends StatelessWidget {
-  const _SpaceCard({required this.space});
+class _SpaceCard extends ConsumerWidget {
+  const _SpaceCard({required this.space, this.accentColor});
   final SpaceModel space;
+  final Color? accentColor;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final memberCount = space.members.length;
     final timeAgo = _formatTimeAgo(space.createdAt);
+    final summaryAsync = ref.watch(spaceTaskSummaryProvider(space.id));
+    final accent = accentColor ?? Theme.of(context).colorScheme.primary;
+    final colors = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Card(
       elevation: 2,
-      shadowColor: AppColors.cardShadow,
+      shadowColor: isDark ? AppColors.darkCardShadow : AppColors.cardShadow,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       margin: EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
         onTap: () {
-          // Navigate to board view (placeholder until Phase 5)
           context.go('/spaces/${space.id}');
         },
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // ── Icon + Name Row ─────────────────────────────
-              Row(
-                children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryLight,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(
-                      Icons.workspaces_outlined,
-                      color: AppColors.primaryDark,
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      space.name,
-                      style: GoogleFonts.nunito(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
+              // Colored left accent bar
+              Container(width: 5, color: accent),
+              // Card content
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // ── Icon + Name Row ─────────────────────────────
+                      Row(
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: accent.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(
+                              Icons.workspaces_outlined,
+                              color: accent,
+                              size: 24,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              space.name,
+                              style: GoogleFonts.nunito(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: colors.onSurface,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          Icon(
+                            Icons.chevron_right,
+                            color: colors.onSurface.withValues(alpha: 0.4),
+                          ),
+                        ],
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  Icon(
-                    Icons.chevron_right,
-                    color: AppColors.textPrimary.withValues(alpha: 0.4),
-                  ),
-                ],
-              ),
 
-              const Spacer(),
+                      const Spacer(),
 
-              // ── Meta Info ───────────────────────────────────
-              Row(
-                children: [
-                  _MetaChip(
-                    icon: Icons.people_outline,
-                    label: '$memberCount member${memberCount == 1 ? '' : 's'}',
-                  ),
-                  const SizedBox(width: 12),
-                  _MetaChip(
-                    icon: Icons.access_time,
-                    label: timeAgo,
-                  ),
-                ],
-              ),
-
-              // ── Themes Preview ──────────────────────────────
-              if (space.themes.isNotEmpty) ...[
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 4,
-                  children: space.themes.take(3).map((theme) {
-                    return Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
+                      // ── Task Summary Row ────────────────────────────
+                      summaryAsync.when(
+                        loading: () => const SizedBox.shrink(),
+                        error: (_, __) => const SizedBox.shrink(),
+                        data: (summary) {
+                          if (summary.totalCount == 0) {
+                            return Text(
+                              'No tasks yet',
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                color: colors.onSurface.withValues(alpha: 0.5),
+                              ),
+                            );
+                          }
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '${summary.todoCount} to do, ${summary.inProgressCount} in progress',
+                                style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  color:
+                                      colors.onSurface.withValues(alpha: 0.6),
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              // Mini progress bar
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(3),
+                                child: LinearProgressIndicator(
+                                  value: summary.completionPercent,
+                                  minHeight: 4,
+                                  backgroundColor: colors.primaryContainer,
+                                  valueColor:
+                                      AlwaysStoppedAnimation<Color>(accent),
+                                ),
+                              ),
+                            ],
+                          );
+                        },
                       ),
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryLight,
-                        borderRadius: BorderRadius.circular(20),
+
+                      const SizedBox(height: 8),
+
+                      // ── Meta Info ───────────────────────────────────
+                      Row(
+                        children: [
+                          _MetaChip(
+                            icon: Icons.people_outline,
+                            label:
+                                '$memberCount member${memberCount == 1 ? '' : 's'}',
+                          ),
+                          const SizedBox(width: 12),
+                          _MetaChip(
+                            icon: Icons.access_time,
+                            label: timeAgo,
+                          ),
+                        ],
                       ),
-                      child: Text(
-                        theme,
-                        style: GoogleFonts.inter(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.primaryDark,
+
+                      // ── Themes Preview ──────────────────────────────
+                      if (space.themes.isNotEmpty) ...[
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 4,
+                          children: space.themes.take(3).map((theme) {
+                            return Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: colors.primaryContainer,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                theme,
+                                style: GoogleFonts.inter(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                  color: colors.primary,
+                                ),
+                              ),
+                            );
+                          }).toList(),
                         ),
-                      ),
-                    );
-                  }).toList(),
+                      ],
+                    ],
+                  ),
                 ),
-              ],
+              ),
             ],
           ),
         ),
@@ -293,16 +374,17 @@ class _MetaChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final onSurface = Theme.of(context).colorScheme.onSurface;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 14, color: AppColors.textPrimary.withValues(alpha: 0.5)),
+        Icon(icon, size: 14, color: onSurface.withValues(alpha: 0.5)),
         const SizedBox(width: 4),
         Text(
           label,
           style: GoogleFonts.inter(
             fontSize: 12,
-            color: AppColors.textPrimary.withValues(alpha: 0.6),
+            color: onSurface.withValues(alpha: 0.6),
           ),
         ),
       ],
@@ -317,6 +399,7 @@ class _EmptySpacesView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -327,31 +410,31 @@ class _EmptySpacesView extends StatelessWidget {
               width: 80,
               height: 80,
               decoration: BoxDecoration(
-                color: AppColors.primaryLight,
+                color: colors.primaryContainer,
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.workspaces_outlined,
                 size: 40,
-                color: AppColors.primaryDark,
+                color: colors.primary,
               ),
             ),
             const SizedBox(height: 20),
             Text(
-              'No spaces yet',
+              'Ready to plan together?',
               style: GoogleFonts.nunito(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
+                color: colors.onSurface,
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              'Create a space to start planning life together.',
+              'Create your first space and start\norganizing life as a team.',
               textAlign: TextAlign.center,
               style: GoogleFonts.inter(
                 fontSize: 14,
-                color: AppColors.textPrimary.withValues(alpha: 0.6),
+                color: colors.onSurface.withValues(alpha: 0.6),
               ),
             ),
             const SizedBox(height: 24),
@@ -376,20 +459,21 @@ class _ErrorView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline, size: 48, color: AppColors.error),
+            Icon(Icons.error_outline, size: 48, color: colors.error),
             const SizedBox(height: 16),
             Text(
               message,
               textAlign: TextAlign.center,
               style: GoogleFonts.inter(
                 fontSize: 14,
-                color: AppColors.textPrimary,
+                color: colors.onSurface,
               ),
             ),
             const SizedBox(height: 16),

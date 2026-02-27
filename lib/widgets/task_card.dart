@@ -23,67 +23,89 @@ class TaskCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final accentColor = AppColors.statusAccent(task.status);
+    final colors = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
+        clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: colors.surface,
           borderRadius: BorderRadius.circular(12),
-          boxShadow: const [
+          boxShadow: [
             BoxShadow(
-              color: AppColors.cardShadow,
-              blurRadius: 4,
-              offset: Offset(0, 2),
+              color: isDark ? AppColors.darkCardShadow : AppColors.cardShadow,
+              blurRadius: 6,
+              offset: const Offset(0, 2),
             ),
           ],
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Title row with emoji tag
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      task.title,
-                      style: AppTextStyles.bodyMedium,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  if (task.emojiTag != null) ...[
-                    const SizedBox(width: 8),
-                    Text(task.emojiTag!, style: const TextStyle(fontSize: 18)),
-                  ],
-                ],
-              ),
-
-              // Subtask progress
-              if (task.subtasks.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                _SubtaskProgress(subtasks: task.subtasks),
-              ],
-
-              // Bottom row: assignees + due date
-              if (task.assignees.isNotEmpty || task.dueDate != null) ...[
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    // Assignee avatars (stacked)
-                    if (task.assignees.isNotEmpty)
-                      _AssigneeAvatars(
-                        assignees: task.assignees,
-                        memberNames: memberNames,
+              // Status accent bar
+              Container(width: 4, color: accentColor),
+              // Card content
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Title row with emoji tag
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              task.title,
+                              style: AppTextStyles.bodyMedium.copyWith(
+                                color: colors.onSurface,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (task.emojiTag != null) ...[
+                            const SizedBox(width: 8),
+                            Text(task.emojiTag!,
+                                style: const TextStyle(fontSize: 18)),
+                          ],
+                        ],
                       ),
-                    const Spacer(),
-                    // Due date chip
-                    if (task.dueDate != null) _DueDateChip(date: task.dueDate!),
-                  ],
+
+                      // Subtask progress
+                      if (task.subtasks.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        _SubtaskProgress(subtasks: task.subtasks),
+                      ],
+
+                      // Bottom row: assignees + due date
+                      if (task.assignees.isNotEmpty ||
+                          task.dueDate != null) ...[
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            // Assignee avatars (stacked)
+                            if (task.assignees.isNotEmpty)
+                              _AssigneeAvatars(
+                                assignees: task.assignees,
+                                memberNames: memberNames,
+                              ),
+                            const Spacer(),
+                            // Due date chip
+                            if (task.dueDate != null)
+                              _DueDateChip(date: task.dueDate!),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
-              ],
+              ),
             ],
           ),
         ),
@@ -99,14 +121,15 @@ class _SubtaskProgress extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final completed = subtasks.where((s) => s.completed).length;
+    final onSurface = Theme.of(context).colorScheme.onSurface;
     return Row(
       children: [
-        Icon(Icons.checklist, size: 14, color: AppColors.primaryDark.withValues(alpha: 0.6)),
+        Icon(Icons.checklist, size: 14, color: onSurface.withValues(alpha: 0.6)),
         const SizedBox(width: 4),
         Text(
           '$completed/${subtasks.length}',
           style: AppTextStyles.caption.copyWith(
-            color: AppColors.primaryDark.withValues(alpha: 0.6),
+            color: onSurface.withValues(alpha: 0.6),
           ),
         ),
       ],
@@ -152,7 +175,8 @@ class _DueDateChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isOverdue = date.isBefore(DateTime.now());
-    final color = isOverdue ? AppColors.error : AppColors.primaryDark;
+    final colors = Theme.of(context).colorScheme;
+    final color = isOverdue ? colors.error : colors.primary;
 
     return Row(
       mainAxisSize: MainAxisSize.min,

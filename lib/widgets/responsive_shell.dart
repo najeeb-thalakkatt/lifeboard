@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import 'package:lifeboard/theme/app_colors.dart';
 import 'package:lifeboard/widgets/bottom_nav_bar.dart';
 
 /// Responsive navigation shell that adapts to screen width:
@@ -10,7 +9,12 @@ import 'package:lifeboard/widgets/bottom_nav_bar.dart';
 /// - Tablet (600–1024px): navigation rail
 /// - Desktop (> 1024px): permanent side drawer
 class ResponsiveShell extends StatelessWidget {
-  const ResponsiveShell({super.key, required this.child});
+  const ResponsiveShell({
+    super.key,
+    required this.currentLocation,
+    required this.child,
+  });
+  final String currentLocation;
   final Widget child;
 
   static const _paths = ['/spaces', '/weekly', '/activity', '/profile'];
@@ -38,9 +42,8 @@ class ResponsiveShell extends StatelessWidget {
     ),
   ];
 
-  int _currentIndex(BuildContext context) {
-    final location = GoRouterState.of(context).uri.toString();
-    final index = _paths.indexWhere(location.startsWith);
+  int _currentIndex() {
+    final index = _paths.indexWhere(currentLocation.startsWith);
     return index < 0 ? 0 : index;
   }
 
@@ -54,10 +57,12 @@ class ResponsiveShell extends StatelessWidget {
       builder: (context, constraints) {
         final width = constraints.maxWidth;
 
+        final currentIdx = _currentIndex();
+
         // ── Desktop (> 1024px): side drawer ───────────────
         if (width > 1024) {
           return _DesktopLayout(
-            currentIndex: _currentIndex(context),
+            currentIndex: currentIdx,
             onNavigate: (i) => _onNavigate(context, i),
             child: child,
           );
@@ -66,7 +71,7 @@ class ResponsiveShell extends StatelessWidget {
         // ── Tablet (600–1024px): navigation rail ──────────
         if (width >= 600) {
           return _TabletLayout(
-            currentIndex: _currentIndex(context),
+            currentIndex: currentIdx,
             onNavigate: (i) => _onNavigate(context, i),
             child: child,
           );
@@ -74,7 +79,7 @@ class ResponsiveShell extends StatelessWidget {
 
         // ── Mobile (< 600px): bottom nav bar ─────────────
         return _MobileLayout(
-          currentIndex: _currentIndex(context),
+          currentIndex: currentIdx,
           onNavigate: (i) => _onNavigate(context, i),
           child: child,
         );
@@ -134,20 +139,21 @@ class _TabletLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Scaffold(
       body: Row(
         children: [
           NavigationRail(
             selectedIndex: currentIndex,
             onDestinationSelected: onNavigate,
-            backgroundColor: AppColors.surface,
-            indicatorColor: AppColors.primaryLight,
+            backgroundColor: colors.surface,
+            indicatorColor: colors.primaryContainer,
             labelType: NavigationRailLabelType.all,
-            leading: const Padding(
-              padding: EdgeInsets.only(bottom: 8),
+            leading: Padding(
+              padding: const EdgeInsets.only(bottom: 8),
               child: Icon(
                 Icons.kayaking,
-                color: AppColors.primaryDark,
+                color: colors.primary,
                 size: 32,
                 semanticLabel: 'Lifeboard',
               ),
@@ -182,13 +188,14 @@ class _DesktopLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Scaffold(
       body: Row(
         children: [
           SizedBox(
             width: 240,
             child: Material(
-              color: AppColors.surface,
+              color: colors.surface,
               elevation: 2,
               child: Column(
                 children: [
@@ -197,9 +204,9 @@ class _DesktopLayout extends StatelessWidget {
                     padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
                     child: Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.kayaking,
-                          color: AppColors.primaryDark,
+                          color: colors.primary,
                           size: 28,
                           semanticLabel: 'Lifeboard',
                         ),
@@ -209,7 +216,7 @@ class _DesktopLayout extends StatelessWidget {
                           style: GoogleFonts.nunito(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
-                            color: AppColors.primaryDark,
+                            color: colors.primary,
                           ),
                         ),
                       ],
@@ -235,8 +242,8 @@ class _DesktopLayout extends StatelessWidget {
                             leading: Icon(
                               isSelected ? dest.selectedIcon : dest.icon,
                               color: isSelected
-                                  ? AppColors.primaryDark
-                                  : Colors.grey,
+                                  ? colors.primary
+                                  : colors.onSurface.withValues(alpha: 0.5),
                             ),
                             title: Text(
                               dest.label,
@@ -246,12 +253,12 @@ class _DesktopLayout extends StatelessWidget {
                                     ? FontWeight.w600
                                     : FontWeight.normal,
                                 color: isSelected
-                                    ? AppColors.primaryDark
-                                    : AppColors.textPrimary,
+                                    ? colors.primary
+                                    : colors.onSurface,
                               ),
                             ),
                             selected: isSelected,
-                            selectedTileColor: AppColors.primaryLight,
+                            selectedTileColor: colors.primaryContainer,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),

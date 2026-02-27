@@ -11,8 +11,13 @@ class WelcomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? AppColors.darkPrimaryContainer : AppColors.background;
+    // On the branded splash, text/icons sit on the teal/dark background
+    const onBgColor = Colors.white;
+
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: bgColor,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -29,7 +34,7 @@ class WelcomeScreen extends StatelessWidget {
                 errorBuilder: (_, __, ___) => Icon(
                   Icons.kayaking,
                   size: 120,
-                  color: AppColors.surface.withValues(alpha: 0.9),
+                  color: onBgColor.withValues(alpha: 0.9),
                 ),
               ),
               const SizedBox(height: 24),
@@ -38,7 +43,7 @@ class WelcomeScreen extends StatelessWidget {
               Text(
                 AppConstants.appName,
                 style: AppTextStyles.headingLarge.copyWith(
-                  color: AppColors.surface,
+                  color: onBgColor,
                   fontSize: 32,
                 ),
               ),
@@ -48,7 +53,7 @@ class WelcomeScreen extends StatelessWidget {
               Text(
                 AppConstants.tagline,
                 style: AppTextStyles.bodyLarge.copyWith(
-                  color: AppColors.surface.withValues(alpha: 0.85),
+                  color: onBgColor.withValues(alpha: 0.85),
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -62,8 +67,8 @@ class WelcomeScreen extends StatelessWidget {
                 child: FilledButton(
                   onPressed: () => context.go('/auth?mode=signup'),
                   style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.primaryDark,
-                    foregroundColor: AppColors.surface,
+                    backgroundColor: isDark ? AppColors.darkPrimary : AppColors.primaryDark,
+                    foregroundColor: onBgColor,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
@@ -83,7 +88,7 @@ class WelcomeScreen extends StatelessWidget {
                 child: TextButton(
                   onPressed: () => context.go('/auth?mode=login'),
                   style: TextButton.styleFrom(
-                    foregroundColor: AppColors.surface,
+                    foregroundColor: onBgColor,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
@@ -91,7 +96,7 @@ class WelcomeScreen extends StatelessWidget {
                   child: Text(
                     'Log In',
                     style: AppTextStyles.button.copyWith(
-                      color: AppColors.surface,
+                      color: onBgColor,
                       fontSize: 16,
                     ),
                   ),

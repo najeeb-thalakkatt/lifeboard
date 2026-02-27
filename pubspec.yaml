@@ -35,6 +35,9 @@ dependencies:
   image_picker: ^1.1.2
   file_picker: ^8.1.6
 
+  # Local Storage
+  shared_preferences: ^2.3.4
+
   # Utilities
   freezed_annotation: ^3.1.0
   json_annotation: ^4.9.0
@@ -59,6 +62,8 @@ dev_dependencies:
   riverpod_lint: ^2.6.5
   mocktail: ^1.0.4
   fake_cloud_firestore: ^4.0.1
+  flutter_launcher_icons: ^0.14.3
+  flutter_native_splash: ^2.4.6
 
 flutter:
   uses-material-design: true
@@ -66,3 +71,21 @@ flutter:
   assets:
     - assets/images/
     - assets/animations/
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/app_icon.png"
+  adaptive_icon_background: "#88B5B3"
+  adaptive_icon_foreground: "assets/images/app_icon.png"
+  min_sdk_android: 21
+  remove_alpha_ios: true
+  web:
+    generate: true
+    image_path: "assets/images/app_icon.png"
+
+flutter_native_splash:
+  color: "#88B5B3"
+  android: true
+  ios: true
+  web: true

@@ -115,13 +115,16 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: colors.surface,
       appBar: AppBar(
-        backgroundColor: AppColors.surface,
+        backgroundColor: colors.surface,
         elevation: 0,
         leading: BackButton(
-          color: AppColors.primaryDark,
+          color: colors.primary,
           onPressed: () => Navigator.of(context).maybePop(),
         ),
       ),
@@ -145,7 +148,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     ? 'Start planning life together'
                     : 'Sign in to your account',
                 style: AppTextStyles.bodyLarge.copyWith(
-                  color: AppColors.textPrimary.withValues(alpha: 0.6),
+                  color: colors.onSurface.withValues(alpha: 0.6),
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -183,7 +186,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                             _obscurePassword
                                 ? Icons.visibility_off_outlined
                                 : Icons.visibility_outlined,
-                            color: AppColors.primaryDark,
+                            color: colors.primary,
                           ),
                           onPressed: () {
                             setState(
@@ -207,19 +210,19 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 child: FilledButton(
                   onPressed: _isLoading ? null : _submitEmail,
                   style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.primaryDark,
-                    foregroundColor: AppColors.surface,
+                    backgroundColor: colors.primary,
+                    foregroundColor: colors.onPrimary,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
                   ),
                   child: _isLoading
-                      ? const SizedBox(
+                      ? SizedBox(
                           width: 24,
                           height: 24,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            color: AppColors.surface,
+                            color: colors.onPrimary,
                           ),
                         )
                       : Text(
@@ -233,17 +236,17 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               // Divider
               Row(
                 children: [
-                  const Expanded(child: Divider(color: AppColors.divider)),
+                  Expanded(child: Divider(color: isDark ? AppColors.darkDivider : AppColors.divider)),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Text(
                       'or',
                       style: AppTextStyles.caption.copyWith(
-                        color: AppColors.textPrimary.withValues(alpha: 0.5),
+                        color: colors.onSurface.withValues(alpha: 0.5),
                       ),
                     ),
                   ),
-                  const Expanded(child: Divider(color: AppColors.divider)),
+                  Expanded(child: Divider(color: isDark ? AppColors.darkDivider : AppColors.divider)),
                 ],
               ),
               const SizedBox(height: 24),
@@ -253,22 +256,22 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 height: 52,
                 child: OutlinedButton.icon(
                   onPressed: _isLoading ? null : _signInWithGoogle,
-                  icon: const Text(
+                  icon: Text(
                     'G',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.primaryDark,
+                      color: colors.primary,
                     ),
                   ),
                   label: Text(
                     'Continue with Google',
                     style: AppTextStyles.button.copyWith(
-                      color: AppColors.primaryDark,
+                      color: colors.primary,
                     ),
                   ),
                   style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: AppColors.divider),
+                    side: BorderSide(color: isDark ? AppColors.darkDivider : AppColors.divider),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
@@ -315,7 +318,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     child: Text(
                       _isSignUp ? 'Log In' : 'Sign Up',
                       style: AppTextStyles.bodyMedium.copyWith(
-                        color: AppColors.primaryDark,
+                        color: colors.primary,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -331,20 +334,21 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   }
 
   InputDecoration _inputDecoration(String label) {
+    final colors = Theme.of(context).colorScheme;
     return InputDecoration(
       labelText: label,
       labelStyle: AppTextStyles.bodyMedium.copyWith(
-        color: AppColors.textPrimary.withValues(alpha: 0.6),
+        color: colors.onSurface.withValues(alpha: 0.6),
       ),
       filled: true,
-      fillColor: AppColors.primaryLight.withValues(alpha: 0.3),
+      fillColor: colors.primaryContainer.withValues(alpha: 0.3),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide.none,
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: AppColors.primaryDark, width: 1.5),
+        borderSide: BorderSide(color: colors.primary, width: 1.5),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),

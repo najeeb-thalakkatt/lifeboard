@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -17,6 +20,9 @@ class KanbanColumn extends StatefulWidget {
     required this.onTaskDropped,
     required this.onQuickAdd,
     this.onTaskTap,
+    this.onTaskCompleted,
+    this.onDragStarted,
+    this.onDragEnd,
   });
 
   /// The status key for this column ('todo', 'in_progress', 'done').
@@ -36,6 +42,15 @@ class KanbanColumn extends StatefulWidget {
 
   /// Called when a task card is tapped.
   final void Function(TaskModel task)? onTaskTap;
+
+  /// Called when a task is swiped to complete.
+  final void Function(TaskModel task)? onTaskCompleted;
+
+  /// Called when a task drag begins (for showing drop-zone overlays).
+  final VoidCallback? onDragStarted;
+
+  /// Called when a task drag ends.
+  final VoidCallback? onDragEnd;
 
   @override
   State<KanbanColumn> createState() => _KanbanColumnState();
@@ -66,6 +81,12 @@ class _KanbanColumnState extends State<KanbanColumn> {
   @override
   Widget build(BuildContext context) {
     final label = StatusDisplayName.fromStatus(widget.status);
+    final colors = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final columnBg = isDark
+        ? AppColors.darkCardSurface.withValues(alpha: _isDragOver ? 0.8 : 0.4)
+        : AppColors.primaryLight.withValues(alpha: _isDragOver ? 0.8 : 0.4);
 
     return DragTarget<TaskModel>(
       onWillAcceptWithDetails: (details) {
@@ -84,12 +105,10 @@ class _KanbanColumnState extends State<KanbanColumn> {
         return AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           decoration: BoxDecoration(
-            color: _isDragOver
-                ? AppColors.primaryLight.withValues(alpha: 0.8)
-                : AppColors.primaryLight.withValues(alpha: 0.4),
+            color: columnBg,
             borderRadius: BorderRadius.circular(16),
             border: _isDragOver
-                ? Border.all(color: AppColors.primaryDark, width: 2)
+                ? Border.all(color: colors.primary, width: 2)
                 : null,
           ),
           padding: const EdgeInsets.all(12),
@@ -100,19 +119,25 @@ class _KanbanColumnState extends State<KanbanColumn> {
               Row(
                 children: [
                   Expanded(
-                    child: Text(label, style: AppTextStyles.headingSmall),
+                    child: Text(
+                      label,
+                      style: AppTextStyles.headingSmall.copyWith(
+                        color: colors.onSurface,
+                      ),
+                    ),
                   ),
                   Container(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
-                      color: AppColors.primaryDark.withValues(alpha: 0.1),
+                      color: colors.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
                       '${widget.tasks.length}',
                       style: AppTextStyles.caption.copyWith(
                         fontWeight: FontWeight.w600,
+                        color: colors.onSurface,
                       ),
                     ),
                   ),
@@ -128,37 +153,83 @@ class _KanbanColumnState extends State<KanbanColumn> {
                         itemCount: widget.tasks.length,
                         itemBuilder: (context, index) {
                           final task = widget.tasks[index];
-                          return LongPressDraggable<TaskModel>(
-                            data: task,
-                            hapticFeedbackOnStart: true,
-                            feedback: Material(
-                              elevation: 8,
-                              borderRadius: BorderRadius.circular(12),
-                              child: SizedBox(
-                                width: MediaQuery.of(context).size.width * 0.7,
-                                child: Opacity(
-                                  opacity: 0.9,
-                                  child: TaskCard(
-                                    task: task,
-                                    memberNames: widget.memberNames,
-                                  ),
+                          Widget taskCard = TaskCard(
+                            task: task,
+                            memberNames: widget.memberNames,
+                            onTap: widget.onTaskTap != null
+                                ? () => widget.onTaskTap!(task)
+                                : null,
+                          );
+
+                          // Swipe-to-complete for non-done tasks
+                          if (widget.status != 'done' &&
+                              widget.onTaskCompleted != null) {
+                            taskCard = Dismissible(
+                              key: ValueKey(task.id),
+                              direction: DismissDirection.endToStart,
+                              confirmDismiss: (_) async {
+                                unawaited(HapticFeedback.mediumImpact());
+                                widget.onTaskCompleted!(task);
+                                return false; // Don't remove — Firestore handles it
+                              },
+                              background: Container(
+                                margin: const EdgeInsets.only(bottom: 8),
+                                decoration: BoxDecoration(
+                                  color: AppColors.statusDone,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                alignment: Alignment.centerRight,
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 20),
+                                child: const Icon(Icons.check,
+                                    color: Colors.white, size: 28),
+                              ),
+                              child: taskCard,
+                            );
+                          }
+
+                          final feedback = Material(
+                            elevation: 8,
+                            borderRadius: BorderRadius.circular(12),
+                            child: SizedBox(
+                              width: MediaQuery.of(context).size.width * 0.7,
+                              child: Opacity(
+                                opacity: 0.9,
+                                child: TaskCard(
+                                  task: task,
+                                  memberNames: widget.memberNames,
                                 ),
                               ),
                             ),
-                            childWhenDragging: Opacity(
-                              opacity: 0.3,
-                              child: TaskCard(
-                                task: task,
-                                memberNames: widget.memberNames,
-                              ),
-                            ),
+                          );
+                          final childWhenDragging = Opacity(
+                            opacity: 0.3,
                             child: TaskCard(
                               task: task,
                               memberNames: widget.memberNames,
-                              onTap: widget.onTaskTap != null
-                                  ? () => widget.onTaskTap!(task)
-                                  : null,
                             ),
+                          );
+
+                          // Use Draggable on web (click-drag) and
+                          // LongPressDraggable on mobile (long-press-drag).
+                          if (kIsWeb) {
+                            return Draggable<TaskModel>(
+                              data: task,
+                              feedback: feedback,
+                              childWhenDragging: childWhenDragging,
+                              onDragStarted: widget.onDragStarted,
+                              onDragEnd: (_) => widget.onDragEnd?.call(),
+                              child: taskCard,
+                            );
+                          }
+                          return LongPressDraggable<TaskModel>(
+                            data: task,
+                            hapticFeedbackOnStart: true,
+                            feedback: feedback,
+                            childWhenDragging: childWhenDragging,
+                            onDragStarted: widget.onDragStarted,
+                            onDragEnd: (_) => widget.onDragEnd?.call(),
+                            child: taskCard,
                           );
                         },
                       ),
@@ -174,29 +245,27 @@ class _KanbanColumnState extends State<KanbanColumn> {
                   onCancel: () => setState(() => _isAddingTask = false),
                 )
               else
-                GestureDetector(
-                  onTap: () {
-                    setState(() => _isAddingTask = true);
-                    // Focus after build
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      _addFocusNode.requestFocus();
-                    });
-                  },
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.add,
-                        size: 18,
-                        color: AppColors.primaryDark.withValues(alpha: 0.5),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      setState(() => _isAddingTask = true);
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        _addFocusNode.requestFocus();
+                      });
+                    },
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text('Add task'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: colors.onSurface.withValues(alpha: 0.6),
+                      side: BorderSide(
+                        color: colors.onSurface.withValues(alpha: 0.2),
                       ),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Add task',
-                        style: AppTextStyles.bodyMedium.copyWith(
-                          color: AppColors.primaryDark.withValues(alpha: 0.5),
-                        ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                    ],
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                    ),
                   ),
                 ),
             ],
@@ -213,19 +282,34 @@ class _EmptyColumnHint extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final emojis = {
+      'todo': '\u{1F4DD}',
+      'in_progress': '\u{1F3C3}',
+      'done': '\u{1F389}',
+    };
     final messages = {
-      'todo': 'Nothing here yet.\nTap + to add a task!',
-      'in_progress': 'Start working on\nsomething!',
-      'done': 'Complete tasks will\nshow up here.',
+      'todo': 'What needs to happen?\nTap below to add a task!',
+      'in_progress': 'Pick something to\nwork on today!',
+      'done': 'Finished tasks land here.\nYou got this!',
     };
 
     return Center(
-      child: Text(
-        messages[status] ?? 'Drop tasks here',
-        textAlign: TextAlign.center,
-        style: AppTextStyles.bodyMedium.copyWith(
-          color: AppColors.primaryDark.withValues(alpha: 0.4),
-        ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            emojis[status] ?? '\u{1F4CB}',
+            style: const TextStyle(fontSize: 32),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            messages[status] ?? 'Drop tasks here',
+            textAlign: TextAlign.center,
+            style: AppTextStyles.bodyMedium.copyWith(
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -246,15 +330,18 @@ class _QuickAddField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: colors.surface,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-            color: AppColors.cardShadow,
+            color: isDark ? AppColors.darkCardShadow : AppColors.cardShadow,
             blurRadius: 4,
-            offset: Offset(0, 2),
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -265,15 +352,19 @@ class _QuickAddField extends StatelessWidget {
             child: TextField(
               controller: controller,
               focusNode: focusNode,
-              style: AppTextStyles.bodyMedium,
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: colors.onSurface,
+              ),
               decoration: InputDecoration(
                 hintText: 'Task title...',
                 hintStyle: AppTextStyles.bodyMedium.copyWith(
-                  color: AppColors.primaryDark.withValues(alpha: 0.4),
+                  color: colors.onSurface.withValues(alpha: 0.4),
                 ),
                 border: InputBorder.none,
                 isDense: true,
                 contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                fillColor: Colors.transparent,
+                filled: true,
               ),
               textInputAction: TextInputAction.done,
               onSubmitted: (_) => onSubmit(),
@@ -284,7 +375,7 @@ class _QuickAddField extends StatelessWidget {
             onPressed: onCancel,
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
-            color: AppColors.primaryDark.withValues(alpha: 0.5),
+            color: colors.onSurface.withValues(alpha: 0.5),
           ),
         ],
       ),

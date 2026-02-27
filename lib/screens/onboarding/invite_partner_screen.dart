@@ -15,10 +15,10 @@ class InvitePartnerScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: AppColors.surface,
       appBar: AppBar(
-        backgroundColor: AppColors.surface,
         elevation: 0,
         automaticallyImplyLeading: false,
         actions: [
@@ -27,7 +27,7 @@ class InvitePartnerScreen extends StatelessWidget {
             child: Text(
               'Skip for now',
               style: AppTextStyles.bodyMedium.copyWith(
-                color: AppColors.textPrimary.withValues(alpha: 0.6),
+                color: colors.onSurface.withValues(alpha: 0.6),
               ),
             ),
           ),
@@ -45,12 +45,12 @@ class InvitePartnerScreen extends StatelessWidget {
                 width: 80,
                 height: 80,
                 decoration: BoxDecoration(
-                  color: AppColors.primaryLight,
+                  color: colors.primaryContainer,
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.person_add_alt_1_rounded,
-                  color: AppColors.primaryDark,
+                  color: colors.primary,
                   size: 40,
                 ),
               ),
@@ -66,7 +66,7 @@ class InvitePartnerScreen extends StatelessWidget {
               Text(
                 'Share this code so they can join "${space.name}"',
                 style: AppTextStyles.bodyLarge.copyWith(
-                  color: AppColors.textPrimary.withValues(alpha: 0.6),
+                  color: colors.onSurface.withValues(alpha: 0.6),
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -81,10 +81,10 @@ class InvitePartnerScreen extends StatelessWidget {
                     vertical: 20,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.primaryLight.withValues(alpha: 0.4),
+                    color: colors.primaryContainer.withValues(alpha: 0.4),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: AppColors.primaryDark.withValues(alpha: 0.2),
+                      color: colors.primary.withValues(alpha: 0.2),
                     ),
                   ),
                   child: Row(
@@ -100,7 +100,7 @@ class InvitePartnerScreen extends StatelessWidget {
                       const SizedBox(width: 12),
                       Icon(
                         Icons.copy_rounded,
-                        color: AppColors.primaryDark.withValues(alpha: 0.6),
+                        color: colors.primary.withValues(alpha: 0.6),
                         size: 20,
                       ),
                     ],
@@ -111,7 +111,7 @@ class InvitePartnerScreen extends StatelessWidget {
               Text(
                 'Tap to copy',
                 style: AppTextStyles.caption.copyWith(
-                  color: AppColors.textPrimary.withValues(alpha: 0.5),
+                  color: colors.onSurface.withValues(alpha: 0.5),
                 ),
               ),
 
@@ -129,8 +129,8 @@ class InvitePartnerScreen extends StatelessWidget {
                     style: AppTextStyles.button.copyWith(fontSize: 16),
                   ),
                   style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.primaryDark,
-                    foregroundColor: AppColors.surface,
+                    backgroundColor: colors.primary,
+                    foregroundColor: colors.onPrimary,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
@@ -146,8 +146,8 @@ class InvitePartnerScreen extends StatelessWidget {
                 child: OutlinedButton(
                   onPressed: () => context.go('/spaces'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.primaryDark,
-                    side: const BorderSide(color: AppColors.divider),
+                    foregroundColor: colors.primary,
+                    side: BorderSide(color: isDark ? AppColors.darkDivider : AppColors.divider),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
@@ -155,7 +155,7 @@ class InvitePartnerScreen extends StatelessWidget {
                   child: Text(
                     'Continue to Space',
                     style: AppTextStyles.button.copyWith(
-                      color: AppColors.primaryDark,
+                      color: colors.primary,
                       fontSize: 16,
                     ),
                   ),
@@ -176,9 +176,9 @@ class InvitePartnerScreen extends StatelessWidget {
       SnackBar(
         content: Text(
           'Invite code copied!',
-          style: AppTextStyles.bodyMedium.copyWith(color: AppColors.surface),
+          style: AppTextStyles.bodyMedium.copyWith(color: Colors.white),
         ),
-        backgroundColor: AppColors.primaryDark,
+        backgroundColor: Theme.of(context).colorScheme.primary,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         duration: const Duration(seconds: 2),

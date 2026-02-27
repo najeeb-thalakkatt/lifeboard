@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'package:lifeboard/core/constants.dart';
 import 'package:lifeboard/theme/app_colors.dart';
 import 'package:lifeboard/theme/app_text_styles.dart';
 
-/// Grid picker for emoji tags on a task.
+/// Compact horizontal scrollable emoji tag picker.
 ///
-/// Displays a grid of predefined emoji options. The currently selected
-/// emoji is highlighted. Tapping an already-selected emoji deselects it.
+/// Displays emoji tags as circular buttons in a single row.
+/// The selected emoji gets a teal ring + tint. Label shown below only for selected.
 class EmojiTagPicker extends StatelessWidget {
   const EmojiTagPicker({
     super.key,
@@ -33,45 +34,66 @@ class EmojiTagPicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: AppConstants.emojiTags.map((emoji) {
-        final isSelected = emoji == selected;
-        return GestureDetector(
-          onTap: () => onSelected(isSelected ? null : emoji),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 150),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: isSelected
-                  ? AppColors.primaryDark.withValues(alpha: 0.12)
-                  : AppColors.surface,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: isSelected ? AppColors.primaryDark : AppColors.divider,
-                width: isSelected ? 2 : 1,
-              ),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(emoji, style: const TextStyle(fontSize: 24)),
-                const SizedBox(height: 2),
-                Text(
-                  _labels[emoji] ?? '',
-                  style: AppTextStyles.caption.copyWith(
-                    fontSize: 10,
-                    color: isSelected
-                        ? AppColors.primaryDark
-                        : AppColors.primaryDark.withValues(alpha: 0.6),
+    final colors = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final dividerColor = isDark ? AppColors.darkDivider : AppColors.divider;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          height: 48,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: AppConstants.emojiTags.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 10),
+            itemBuilder: (_, i) {
+              final emoji = AppConstants.emojiTags[i];
+              final isSelected = emoji == selected;
+              return Semantics(
+                label: '${_labels[emoji] ?? ''} tag',
+                selected: isSelected,
+                button: true,
+                child: GestureDetector(
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    onSelected(isSelected ? null : emoji);
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: isSelected
+                          ? colors.primary.withValues(alpha: 0.12)
+                          : colors.surface,
+                      border: Border.all(
+                        color: isSelected ? colors.primary : dividerColor,
+                        width: isSelected ? 2 : 1,
+                      ),
+                    ),
+                    child: Center(
+                      child: Text(emoji, style: const TextStyle(fontSize: 22)),
+                    ),
                   ),
                 ),
-              ],
+              );
+            },
+          ),
+        ),
+        if (selected != null && _labels[selected] != null) ...[
+          const SizedBox(height: 6),
+          Text(
+            _labels[selected]!,
+            style: AppTextStyles.caption.copyWith(
+              color: colors.onSurface.withValues(alpha: 0.6),
+              fontWeight: FontWeight.w500,
             ),
           ),
-        );
-      }).toList(),
+        ],
+      ],
     );
   }
 }

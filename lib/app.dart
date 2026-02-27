@@ -15,29 +15,10 @@ import 'package:lifeboard/screens/board/board_view_screen.dart';
 import 'package:lifeboard/screens/task/task_detail_screen.dart';
 import 'package:lifeboard/widgets/responsive_shell.dart';
 import 'package:lifeboard/screens/weekly/weekly_view_screen.dart';
-import 'package:lifeboard/widgets/shared_app_bar.dart';
 import 'package:lifeboard/screens/profile/profile_settings_screen.dart';
+import 'package:lifeboard/screens/activity/activity_feed_screen.dart';
+import 'package:lifeboard/screens/splash/splash_screen.dart';
 import 'package:lifeboard/providers/profile_provider.dart';
-
-// ── Placeholder screens (replaced in later phases) ──────────
-
-class _PlaceholderScreen extends StatelessWidget {
-  const _PlaceholderScreen({required this.title});
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: SharedAppBar(title: title),
-      body: Center(
-        child: Text(
-          title,
-          style: Theme.of(context).textTheme.headlineSmall,
-        ),
-      ),
-    );
-  }
-}
 
 // ── Router ───────────────────────────────────────────────────
 
@@ -55,7 +36,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
-    initialLocation: '/spaces',
+    initialLocation: '/splash',
     refreshListenable: authNotifier,
     redirect: (context, state) {
       final user = FirebaseAuth.instance.currentUser;
@@ -65,6 +46,9 @@ final routerProvider = Provider<GoRouter>((ref) {
           _unauthOnlyPaths.any(currentPath.startsWith);
       final isAuthNoShell =
           _authNoShellPaths.any(currentPath.startsWith);
+
+      // Let the splash screen show without redirect
+      if (currentPath == '/splash') return null;
 
       // Not authenticated → force to welcome (unless already on unauth route)
       if (!isAuthenticated && !isUnauthOnly) {
@@ -84,6 +68,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       return null; // No redirect needed.
     },
     routes: [
+      // ── Splash ──────────────────────────────────────────────
+      GoRoute(
+        path: '/splash',
+        builder: (context, state) => const SplashScreen(),
+      ),
+
       // ── Public routes (no shell / no bottom nav) ──────────
       GoRoute(
         path: '/welcome',
@@ -111,7 +101,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       // ── Authenticated routes (with responsive nav shell) ──
       ShellRoute(
         navigatorKey: _shellNavigatorKey,
-        builder: (context, state, child) => ResponsiveShell(child: child),
+        builder: (context, state, child) => ResponsiveShell(
+          currentLocation: state.uri.toString(),
+          child: child,
+        ),
         routes: [
           GoRoute(
             path: '/spaces',
@@ -150,7 +143,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/activity',
             pageBuilder: (context, state) => const NoTransitionPage(
-              child: _PlaceholderScreen(title: 'Activity'),
+              child: ActivityFeedScreen(),
             ),
           ),
           GoRoute(

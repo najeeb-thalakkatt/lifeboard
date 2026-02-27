@@ -1,20 +1,45 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:lifeboard/providers/auth_provider.dart';
 import 'package:lifeboard/providers/space_provider.dart';
 
 // ── Theme Mode Provider ─────────────────────────────────────────
 
-/// Holds the current [ThemeMode] and persists across the session.
+/// Holds the current [ThemeMode] and persists it via SharedPreferences.
 class ThemeModeNotifier extends StateNotifier<ThemeMode> {
-  ThemeModeNotifier() : super(ThemeMode.light);
+  ThemeModeNotifier() : super(ThemeMode.light) {
+    _loadFromPrefs();
+  }
 
-  void setThemeMode(ThemeMode mode) => state = mode;
+  static const _key = 'theme_mode';
+
+  Future<void> _loadFromPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    final value = prefs.getString(_key);
+    if (value == 'dark') {
+      state = ThemeMode.dark;
+    } else if (value == 'system') {
+      state = ThemeMode.system;
+    }
+  }
+
+  Future<void> _saveToPrefs(ThemeMode mode) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_key, mode.name);
+  }
+
+  void setThemeMode(ThemeMode mode) {
+    state = mode;
+    _saveToPrefs(mode);
+  }
 
   void toggle() {
-    state = state == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
+    final next = state == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
+    state = next;
+    _saveToPrefs(next);
   }
 }
 

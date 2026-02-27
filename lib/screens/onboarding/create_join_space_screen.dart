@@ -88,17 +88,16 @@ class _CreateJoinSpaceScreenState extends ConsumerState<CreateJoinSpaceScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: AppColors.error,
+        backgroundColor: Theme.of(context).colorScheme.error,
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: AppColors.surface,
       appBar: AppBar(
-        backgroundColor: AppColors.surface,
         elevation: 0,
         title: Text(
           'Get Started',
@@ -126,7 +125,7 @@ class _CreateJoinSpaceScreenState extends ConsumerState<CreateJoinSpaceScreen> {
                 Text(
                   'A space is where you and your partner plan life together.',
                   style: AppTextStyles.bodyLarge.copyWith(
-                    color: AppColors.textPrimary.withValues(alpha: 0.6),
+                    color: colors.onSurface.withValues(alpha: 0.6),
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -167,19 +166,19 @@ class _CreateJoinSpaceScreenState extends ConsumerState<CreateJoinSpaceScreen> {
                     child: FilledButton(
                       onPressed: _isLoading ? null : _createSpace,
                       style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.primaryDark,
-                        foregroundColor: AppColors.surface,
+                        backgroundColor: colors.primary,
+                        foregroundColor: colors.onPrimary,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
                       ),
                       child: _isLoading
-                          ? const SizedBox(
+                          ? SizedBox(
                               width: 24,
                               height: 24,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: AppColors.surface,
+                                color: colors.onPrimary,
                               ),
                             )
                           : Text(
@@ -236,19 +235,19 @@ class _CreateJoinSpaceScreenState extends ConsumerState<CreateJoinSpaceScreen> {
                     child: FilledButton(
                       onPressed: _isLoading ? null : _joinSpace,
                       style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.primaryDark,
-                        foregroundColor: AppColors.surface,
+                        backgroundColor: colors.primary,
+                        foregroundColor: colors.onPrimary,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
                       ),
                       child: _isLoading
-                          ? const SizedBox(
+                          ? SizedBox(
                               width: 24,
                               height: 24,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: AppColors.surface,
+                                color: colors.onPrimary,
                               ),
                             )
                           : Text(
@@ -270,29 +269,29 @@ class _CreateJoinSpaceScreenState extends ConsumerState<CreateJoinSpaceScreen> {
   }
 
   InputDecoration _inputDecoration(String label) {
+    final colors = Theme.of(context).colorScheme;
     return InputDecoration(
       labelText: label,
       labelStyle: AppTextStyles.bodyMedium.copyWith(
-        color: AppColors.textPrimary.withValues(alpha: 0.6),
+        color: colors.onSurface.withValues(alpha: 0.6),
       ),
       filled: true,
-      fillColor: AppColors.primaryLight.withValues(alpha: 0.3),
+      fillColor: colors.primaryContainer.withValues(alpha: 0.3),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide.none,
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide:
-            const BorderSide(color: AppColors.primaryDark, width: 1.5),
+        borderSide: BorderSide(color: colors.primary, width: 1.5),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: AppColors.error),
+        borderSide: BorderSide(color: colors.error),
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: AppColors.error, width: 1.5),
+        borderSide: BorderSide(color: colors.error, width: 1.5),
       ),
       contentPadding:
           const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -318,6 +317,8 @@ class _OptionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
@@ -325,17 +326,17 @@ class _OptionCard extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: isExpanded
-              ? AppColors.primaryLight.withValues(alpha: 0.4)
-              : AppColors.surface,
+              ? colors.primaryContainer.withValues(alpha: 0.4)
+              : colors.surface,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color:
-                isExpanded ? AppColors.primaryDark : AppColors.divider,
+                isExpanded ? colors.primary : (isDark ? AppColors.darkDivider : AppColors.divider),
             width: isExpanded ? 1.5 : 1,
           ),
           boxShadow: [
             BoxShadow(
-              color: AppColors.cardShadow,
+              color: isDark ? AppColors.darkCardShadow : AppColors.cardShadow,
               blurRadius: isExpanded ? 8 : 4,
               offset: const Offset(0, 2),
             ),
@@ -347,10 +348,10 @@ class _OptionCard extends StatelessWidget {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: AppColors.primaryLight,
+                color: colors.primaryContainer,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(icon, color: AppColors.primaryDark, size: 24),
+              child: Icon(icon, color: colors.primary, size: 24),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -364,7 +365,7 @@ class _OptionCard extends StatelessWidget {
                   Text(
                     subtitle,
                     style: AppTextStyles.caption.copyWith(
-                      color: AppColors.textPrimary.withValues(alpha: 0.6),
+                      color: colors.onSurface.withValues(alpha: 0.6),
                     ),
                   ),
                 ],
@@ -374,7 +375,7 @@ class _OptionCard extends StatelessWidget {
               isExpanded
                   ? Icons.keyboard_arrow_up
                   : Icons.keyboard_arrow_down,
-              color: AppColors.primaryDark,
+              color: colors.primary,
             ),
           ],
         ),
