@@ -58,7 +58,9 @@ final userByIdProvider =
 
 /// Streams the current user's Firestore document as a [UserModel].
 final currentUserProvider = StreamProvider<UserModel?>((ref) {
-  final user = FirebaseAuth.instance.currentUser;
+  // Watch auth state so this provider re-evaluates on login/logout.
+  final authState = ref.watch(authStateProvider);
+  final user = authState.valueOrNull;
   if (user == null) return const Stream.empty();
 
   return FirebaseFirestore.instance

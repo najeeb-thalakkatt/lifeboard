@@ -1,11 +1,15 @@
 import 'dart:async';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:lifeboard/core/constants.dart';
 import 'package:lifeboard/models/task_model.dart';
+import 'package:lifeboard/providers/board_provider.dart';
+import 'package:lifeboard/providers/space_provider.dart';
 import 'package:lifeboard/theme/app_colors.dart';
 import 'package:lifeboard/theme/app_text_styles.dart';
 import 'package:lifeboard/widgets/task_card.dart';
@@ -19,10 +23,14 @@ class KanbanColumn extends StatefulWidget {
     required this.memberNames,
     required this.onTaskDropped,
     required this.onQuickAdd,
+    this.wipLimit,
+    this.spaceId,
+    this.boardId,
     this.onTaskTap,
     this.onTaskCompleted,
     this.onDragStarted,
     this.onDragEnd,
+    this.onArchiveCompleted,
   });
 
   /// The status key for this column ('todo', 'in_progress', 'done').
@@ -40,6 +48,15 @@ class KanbanColumn extends StatefulWidget {
   /// Called when the user submits a quick-add title.
   final void Function(String title) onQuickAdd;
 
+  /// WIP limit for this column. Null means no limit.
+  final int? wipLimit;
+
+  /// Space ID (for WIP limit updates).
+  final String? spaceId;
+
+  /// Board ID (for WIP limit updates).
+  final String? boardId;
+
   /// Called when a task card is tapped.
   final void Function(TaskModel task)? onTaskTap;
 
@@ -51,6 +68,9 @@ class KanbanColumn extends StatefulWidget {
 
   /// Called when a task drag ends.
   final VoidCallback? onDragEnd;
+
+  /// Called when the user taps "Archive completed" in the Done column.
+  final VoidCallback? onArchiveCompleted;
 
   @override
   State<KanbanColumn> createState() => _KanbanColumnState();
@@ -115,34 +135,39 @@ class _KanbanColumnState extends State<KanbanColumn> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Column header
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      label,
-                      style: AppTextStyles.headingSmall.copyWith(
-                        color: colors.onSurface,
-                      ),
-                    ),
-                  ),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: colors.primary.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      '${widget.tasks.length}',
-                      style: AppTextStyles.caption.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: colors.onSurface,
-                      ),
-                    ),
-                  ),
-                ],
+              // Column header with WIP limit indicator
+              _ColumnHeader(
+                label: label,
+                taskCount: widget.tasks.length,
+                wipLimit: widget.wipLimit,
+                status: widget.status,
+                spaceId: widget.spaceId,
+                boardId: widget.boardId,
               ),
+              // Archive button for done column
+              if (widget.status == 'done' &&
+                  widget.tasks.isNotEmpty &&
+                  widget.onArchiveCompleted != null) ...[
+                const SizedBox(height: 4),
+                GestureDetector(
+                  onTap: widget.onArchiveCompleted,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.archive_outlined,
+                          size: 14,
+                          color: colors.onSurface.withValues(alpha: 0.5)),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Archive completed',
+                        style: AppTextStyles.caption.copyWith(
+                          color: colors.onSurface.withValues(alpha: 0.5),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 12),
 
               // Task list
@@ -159,6 +184,10 @@ class _KanbanColumnState extends State<KanbanColumn> {
                             onTap: widget.onTaskTap != null
                                 ? () => widget.onTaskTap!(task)
                                 : null,
+                            onToggleComplete:
+                                widget.onTaskCompleted != null
+                                    ? () => widget.onTaskCompleted!(task)
+                                    : null,
                           );
 
                           // Swipe-to-complete for non-done tasks
@@ -288,9 +317,9 @@ class _EmptyColumnHint extends StatelessWidget {
       'done': '\u{1F389}',
     };
     final messages = {
-      'todo': 'What needs to happen?\nTap below to add a task!',
-      'in_progress': 'Pick something to\nwork on today!',
-      'done': 'Finished tasks land here.\nYou got this!',
+      'todo': 'Nothing here yet\nTap below to add a task!',
+      'in_progress': 'Nothing here yet\nPick something to work on today!',
+      'done': 'Nothing here yet\nFinished tasks land here!',
     };
 
     return Center(
@@ -315,6 +344,166 @@ class _EmptyColumnHint extends StatelessWidget {
   }
 }
 
+/// Column header showing label, task count, and WIP limit indicator.
+class _ColumnHeader extends ConsumerWidget {
+  const _ColumnHeader({
+    required this.label,
+    required this.taskCount,
+    required this.wipLimit,
+    required this.status,
+    this.spaceId,
+    this.boardId,
+  });
+
+  final String label;
+  final int taskCount;
+  final int? wipLimit;
+  final String status;
+  final String? spaceId;
+  final String? boardId;
+
+  Color _wipColor(ColorScheme colors) {
+    if (wipLimit == null) return colors.primary;
+    if (taskCount < wipLimit!) return AppColors.statusTodo; // teal — under
+    if (taskCount == wipLimit!) return AppColors.statusInProgress; // orange — at limit
+    return AppColors.error; // red — over
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final colors = Theme.of(context).colorScheme;
+    final countColor = _wipColor(colors);
+    final countText = wipLimit != null
+        ? '$taskCount/$wipLimit'
+        : '$taskCount';
+
+    return GestureDetector(
+      onLongPress: (spaceId != null && boardId != null)
+          ? () => _showWipLimitPicker(context, ref)
+          : null,
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: AppTextStyles.headingSmall.copyWith(
+                color: colors.onSurface,
+              ),
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: countColor.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              countText,
+              style: AppTextStyles.caption.copyWith(
+                fontWeight: FontWeight.w600,
+                color: countColor,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showWipLimitPicker(BuildContext context, WidgetRef ref) {
+    final currentLimit = wipLimit ?? 0; // 0 = no limit
+    int selectedLimit = currentLimit;
+
+    showCupertinoModalPopup<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModalState) {
+          return Container(
+            height: 280,
+            padding: const EdgeInsets.only(top: 6),
+            decoration: BoxDecoration(
+              color: CupertinoColors.systemBackground.resolveFrom(ctx),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(16),
+              ),
+            ),
+            child: Column(
+              children: [
+                // Header
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      CupertinoButton(
+                        padding: EdgeInsets.zero,
+                        child: const Text('Cancel'),
+                        onPressed: () => Navigator.of(ctx).pop(),
+                      ),
+                      Text(
+                        'WIP Limit',
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      CupertinoButton(
+                        padding: EdgeInsets.zero,
+                        child: const Text('Save'),
+                        onPressed: () {
+                          Navigator.of(ctx).pop();
+                          _saveWipLimit(ref, selectedLimit);
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1),
+                // Picker
+                Expanded(
+                  child: CupertinoPicker(
+                    itemExtent: 36,
+                    scrollController: FixedExtentScrollController(
+                      initialItem: currentLimit,
+                    ),
+                    onSelectedItemChanged: (index) {
+                      selectedLimit = index;
+                    },
+                    children: [
+                      const Center(child: Text('No limit')),
+                      for (var i = 1; i <= 10; i++)
+                        Center(child: Text('$i')),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _saveWipLimit(WidgetRef ref, int limit) {
+    if (spaceId == null || boardId == null) return;
+    final boardAsync = ref.read(boardStreamProvider(
+        (spaceId: spaceId!, boardId: boardId!)));
+    final currentLimits = Map<String, int>.from(
+        boardAsync.valueOrNull?.wipLimits ?? {});
+
+    if (limit == 0) {
+      currentLimits.remove(status);
+    } else {
+      currentLimits[status] = limit;
+    }
+
+    ref.read(firestoreServiceProvider).updateBoardWipLimits(
+      spaceId: spaceId!,
+      boardId: boardId!,
+      wipLimits: currentLimits,
+    );
+  }
+}
+
 class _QuickAddField extends StatelessWidget {
   const _QuickAddField({
     required this.controller,
@@ -331,7 +520,7 @@ class _QuickAddField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final ext = Theme.of(context).extension<AppColorsExtension>()!;
 
     return Container(
       decoration: BoxDecoration(
@@ -339,7 +528,7 @@ class _QuickAddField extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: isDark ? AppColors.darkCardShadow : AppColors.cardShadow,
+            color: ext.cardShadow,
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),

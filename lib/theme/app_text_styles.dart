@@ -9,43 +9,43 @@ import 'package:google_fonts/google_fonts.dart';
 abstract final class AppTextStyles {
   // ── Headings (Nunito Bold) ───────────────────────────────
 
-  static TextStyle headingLarge = GoogleFonts.nunito(
+  static final TextStyle headingLarge = GoogleFonts.nunito(
     fontSize: 28,
     fontWeight: FontWeight.bold,
   );
 
-  static TextStyle headingMedium = GoogleFonts.nunito(
+  static final TextStyle headingMedium = GoogleFonts.nunito(
     fontSize: 24,
     fontWeight: FontWeight.bold,
   );
 
-  static TextStyle headingSmall = GoogleFonts.nunito(
+  static final TextStyle headingSmall = GoogleFonts.nunito(
     fontSize: 20,
     fontWeight: FontWeight.bold,
   );
 
   // ── Body (Inter Regular) ─────────────────────────────────
 
-  static TextStyle bodyLarge = GoogleFonts.inter(
+  static final TextStyle bodyLarge = GoogleFonts.inter(
     fontSize: 16,
     fontWeight: FontWeight.normal,
   );
 
-  static TextStyle bodyMedium = GoogleFonts.inter(
+  static final TextStyle bodyMedium = GoogleFonts.inter(
     fontSize: 14,
     fontWeight: FontWeight.normal,
   );
 
   // ── Caption (Inter Regular) ──────────────────────────────
 
-  static TextStyle caption = GoogleFonts.inter(
+  static final TextStyle caption = GoogleFonts.inter(
     fontSize: 12,
     fontWeight: FontWeight.normal,
   );
 
   // ── Button (Inter SemiBold) ──────────────────────────────
 
-  static TextStyle button = GoogleFonts.inter(
+  static final TextStyle button = GoogleFonts.inter(
     fontSize: 14,
     fontWeight: FontWeight.w600,
   );

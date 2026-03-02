@@ -259,19 +259,18 @@ class _BacklogTaskTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final dividerColor = isDark ? AppColors.darkDivider : AppColors.divider;
+    final ext = Theme.of(context).extension<AppColorsExtension>()!;
 
     return Card(
       elevation: isSelected ? 2 : 0,
-      shadowColor: isDark ? AppColors.darkCardShadow : AppColors.cardShadow,
+      shadowColor: ext.cardShadow,
       color: isSelected ? colors.primaryContainer : null,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
           color: isSelected
               ? colors.primary.withValues(alpha: 0.3)
-              : dividerColor,
+              : ext.divider,
         ),
       ),
       margin: const EdgeInsets.only(bottom: 8),

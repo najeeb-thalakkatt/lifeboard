@@ -318,7 +318,7 @@ class _OptionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final ext = Theme.of(context).extension<AppColorsExtension>()!;
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
@@ -331,12 +331,12 @@ class _OptionCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color:
-                isExpanded ? colors.primary : (isDark ? AppColors.darkDivider : AppColors.divider),
+                isExpanded ? colors.primary : ext.divider,
             width: isExpanded ? 1.5 : 1,
           ),
           boxShadow: [
             BoxShadow(
-              color: isDark ? AppColors.darkCardShadow : AppColors.cardShadow,
+              color: ext.cardShadow,
               blurRadius: isExpanded ? 8 : 4,
               offset: const Offset(0, 2),
             ),

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 
 import 'package:lifeboard/core/constants.dart';
 import 'package:lifeboard/models/task_model.dart';
@@ -21,6 +22,7 @@ class CompactKanbanColumn extends StatefulWidget {
     required this.tasks,
     required this.memberNames,
     required this.onQuickAdd,
+    this.wipLimit,
     this.isDragOver = false,
     this.isDragging = false,
     this.onTaskTap,
@@ -33,6 +35,7 @@ class CompactKanbanColumn extends StatefulWidget {
   final List<TaskModel> tasks;
   final Map<String, String> memberNames;
   final void Function(String title) onQuickAdd;
+  final int? wipLimit;
   final bool isDragOver;
 
   /// True when any task across the board is being dragged.
@@ -129,21 +132,38 @@ class _CompactKanbanColumnState extends State<CompactKanbanColumn> {
                       ),
                     ),
                     const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 7, vertical: 1),
-                      decoration: BoxDecoration(
-                        color: accentColor.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        '${widget.tasks.length}',
-                        style: AppTextStyles.caption.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: accentColor,
+                    Builder(builder: (context) {
+                      final count = widget.tasks.length;
+                      final limit = widget.wipLimit;
+                      Color badgeColor;
+                      if (limit == null) {
+                        badgeColor = accentColor;
+                      } else if (count < limit) {
+                        badgeColor = AppColors.statusTodo;
+                      } else if (count == limit) {
+                        badgeColor = AppColors.statusInProgress;
+                      } else {
+                        badgeColor = AppColors.error;
+                      }
+                      final text = limit != null
+                          ? '$count/$limit'
+                          : '$count';
+                      return Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 7, vertical: 1),
+                        decoration: BoxDecoration(
+                          color: badgeColor.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(10),
                         ),
-                      ),
-                    ),
+                        child: Text(
+                          text,
+                          style: AppTextStyles.caption.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: badgeColor,
+                          ),
+                        ),
+                      );
+                    }),
                     const SizedBox(width: 4),
                     // Inline quick-add button
                     GestureDetector(
@@ -358,9 +378,11 @@ class _CompactTaskTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accentColor = AppColors.statusAccent(task.status);
+    final accentColor = task.isBlocked
+        ? AppColors.error
+        : AppColors.statusAccent(task.status);
     final colors = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final ext = Theme.of(context).extension<AppColorsExtension>()!;
 
     return GestureDetector(
       onTap: onTap,
@@ -372,7 +394,7 @@ class _CompactTaskTile extends StatelessWidget {
           borderRadius: BorderRadius.circular(10),
           boxShadow: [
             BoxShadow(
-              color: isDark ? AppColors.darkCardShadow : AppColors.cardShadow,
+              color: ext.cardShadow,
               blurRadius: 4,
               offset: const Offset(0, 1),
             ),
@@ -391,12 +413,19 @@ class _CompactTaskTile extends StatelessWidget {
                       horizontal: 10, vertical: 8),
                   child: Row(
                     children: [
+                      if (task.isBlocked) ...[
+                        Icon(Icons.block, size: 12,
+                            color: AppColors.error),
+                        const SizedBox(width: 4),
+                      ],
                       Expanded(
                         child: Text(
                           task.title,
                           style: AppTextStyles.caption.copyWith(
                             fontWeight: FontWeight.w500,
-                            color: colors.onSurface,
+                            color: task.isBlocked
+                                ? colors.onSurface.withValues(alpha: 0.7)
+                                : colors.onSurface,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -415,6 +444,26 @@ class _CompactTaskTile extends StatelessWidget {
                             fontSize: 10,
                             color:
                                 colors.onSurface.withValues(alpha: 0.5),
+                          ),
+                        ),
+                      ],
+                      if (task.dueDate != null) ...[
+                        const SizedBox(width: 6),
+                        Icon(
+                          Icons.calendar_today,
+                          size: 10,
+                          color: task.dueDate!.isBefore(DateTime.now())
+                              ? colors.error
+                              : colors.onSurface.withValues(alpha: 0.5),
+                        ),
+                        const SizedBox(width: 2),
+                        Text(
+                          DateFormat('M/d').format(task.dueDate!),
+                          style: AppTextStyles.caption.copyWith(
+                            fontSize: 10,
+                            color: task.dueDate!.isBefore(DateTime.now())
+                                ? colors.error
+                                : colors.onSurface.withValues(alpha: 0.5),
                           ),
                         ),
                       ],

@@ -49,7 +49,12 @@ class AuthService {
     required String email,
     required String password,
   }) async {
-    return _auth.signInWithEmailAndPassword(email: email, password: password);
+    final userCredential = await _auth.signInWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
+    await _createUserDocIfNeeded(userCredential.user!);
+    return userCredential;
   }
 
   // ── Google Sign-In ─────────────────────────────────────────
@@ -122,6 +127,7 @@ class AuthService {
   // ── Firestore User Doc Helpers ─────────────────────────────
 
   /// Creates a Firestore user doc if one does not exist yet.
+  /// If it exists but displayName is empty, updates it from the auth provider.
   Future<void> _createUserDocIfNeeded(
     User user, {
     String? displayName,
@@ -130,6 +136,23 @@ class AuthService {
     final doc = await docRef.get();
     if (!doc.exists) {
       await _createUserDoc(user, displayName: displayName);
+    } else {
+      // Patch missing displayName or photoUrl from auth provider
+      final data = doc.data()!;
+      final existingName = data['displayName'] as String? ?? '';
+      final existingPhoto = data['photoUrl'] as String?;
+      final updates = <String, dynamic>{};
+
+      final resolvedName = displayName ?? user.displayName ?? '';
+      if (existingName.isEmpty && resolvedName.isNotEmpty) {
+        updates['displayName'] = resolvedName;
+      }
+      if (existingPhoto == null && user.photoURL != null) {
+        updates['photoUrl'] = user.photoURL;
+      }
+      if (updates.isNotEmpty) {
+        await docRef.update(updates);
+      }
     }
   }
 

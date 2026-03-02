@@ -1,7 +1,7 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:lifeboard/models/space_model.dart';
+import 'package:lifeboard/providers/auth_provider.dart';
 import 'package:lifeboard/services/firestore_service.dart';
 
 /// Provides the [FirestoreService] singleton.
@@ -11,7 +11,9 @@ final firestoreServiceProvider = Provider<FirestoreService>((ref) {
 
 /// Streams all spaces the current user belongs to.
 final userSpacesProvider = StreamProvider<List<SpaceModel>>((ref) {
-  final user = FirebaseAuth.instance.currentUser;
+  // Watch auth state so this provider re-evaluates on login/logout.
+  final authState = ref.watch(authStateProvider);
+  final user = authState.valueOrNull;
   if (user == null) return const Stream.empty();
 
   final firestoreService = ref.watch(firestoreServiceProvider);
@@ -21,6 +23,10 @@ final userSpacesProvider = StreamProvider<List<SpaceModel>>((ref) {
 /// Streams members of a specific space.
 final spaceMembersProvider =
     StreamProvider.family<Map<String, SpaceMember>, String>((ref, spaceId) {
+  // Watch auth state so this provider resets on login/logout.
+  final authState = ref.watch(authStateProvider);
+  if (authState.valueOrNull == null) return const Stream.empty();
+
   final firestoreService = ref.watch(firestoreServiceProvider);
   return firestoreService.getSpaceMembers(spaceId);
 });
@@ -75,4 +81,38 @@ final spaceActionProvider =
     StateNotifierProvider<SpaceActionNotifier, AsyncValue<void>>((ref) {
   final firestoreService = ref.watch(firestoreServiceProvider);
   return SpaceActionNotifier(firestoreService);
+});
+
+/// Provides resolved member profiles (userId → displayName) for a space.
+///
+/// Watches the space members list, then resolves each user's Firestore doc
+/// to get their real displayName instead of raw UIDs.
+final spaceMemberProfilesProvider =
+    Provider.family<Map<String, String>, String>((ref, spaceId) {
+  final membersAsync = ref.watch(spaceMembersProvider(spaceId));
+
+  return membersAsync.when(
+    loading: () => {},
+    error: (_, __) => {},
+    data: (members) {
+      final profiles = <String, String>{};
+      for (final uid in members.keys) {
+        final userAsync = ref.watch(userByIdProvider(uid));
+        userAsync.when(
+          loading: () => profiles[uid] = 'Loading...',
+          error: (_, __) => profiles[uid] = 'Member',
+          data: (user) {
+            if (user != null && user.displayName.isNotEmpty) {
+              profiles[uid] = user.displayName;
+            } else if (user != null && user.email.isNotEmpty) {
+              profiles[uid] = user.email.split('@').first;
+            } else {
+              profiles[uid] = 'Member';
+            }
+          },
+        );
+      }
+      return profiles;
+    },
+  );
 });

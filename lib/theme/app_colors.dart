@@ -53,6 +53,9 @@ abstract final class AppColors {
     Color(0xFFEF5350),
   ];
 
+  // ── Input ────────────────────────────────────────────────
+  static const Color inputFill = Color(0xFFF5F7F8);
+
   // ── Convenience ──────────────────────────────────────────
   static const Color cardShadow = Color(0x1A000000); // 10% black
   static const Color divider = Color(0xFFE0E0E0);
@@ -69,4 +72,78 @@ abstract final class AppColors {
   static const Color darkGradientTop = Color(0xFF0A0A0A);
   static const Color darkGradientBottom = Color(0xFF1C1C1E);
   static const Color darkCardShadow = Color(0x40000000); // 25% black
+}
+
+/// Theme extension that provides mode-aware colors.
+///
+/// Access via `Theme.of(context).extension<AppColorsExtension>()!`.
+/// Eliminates `isDark ? AppColors.dark* : AppColors.*` ternaries.
+class AppColorsExtension extends ThemeExtension<AppColorsExtension> {
+  const AppColorsExtension({
+    required this.divider,
+    required this.cardShadow,
+    required this.gradientTop,
+    required this.gradientBottom,
+    required this.scaffold,
+    required this.cardSurface,
+  });
+
+  final Color divider;
+  final Color cardShadow;
+  final Color gradientTop;
+  final Color gradientBottom;
+  final Color scaffold;
+  final Color cardSurface;
+
+  /// Light mode values.
+  static const light = AppColorsExtension(
+    divider: AppColors.divider,
+    cardShadow: AppColors.cardShadow,
+    gradientTop: AppColors.gradientTop,
+    gradientBottom: AppColors.gradientBottom,
+    scaffold: AppColors.background,
+    cardSurface: AppColors.surface,
+  );
+
+  /// Dark mode values.
+  static const dark = AppColorsExtension(
+    divider: AppColors.darkDivider,
+    cardShadow: AppColors.darkCardShadow,
+    gradientTop: AppColors.darkGradientTop,
+    gradientBottom: AppColors.darkGradientBottom,
+    scaffold: AppColors.darkScaffold,
+    cardSurface: AppColors.darkCardSurface,
+  );
+
+  @override
+  AppColorsExtension copyWith({
+    Color? divider,
+    Color? cardShadow,
+    Color? gradientTop,
+    Color? gradientBottom,
+    Color? scaffold,
+    Color? cardSurface,
+  }) {
+    return AppColorsExtension(
+      divider: divider ?? this.divider,
+      cardShadow: cardShadow ?? this.cardShadow,
+      gradientTop: gradientTop ?? this.gradientTop,
+      gradientBottom: gradientBottom ?? this.gradientBottom,
+      scaffold: scaffold ?? this.scaffold,
+      cardSurface: cardSurface ?? this.cardSurface,
+    );
+  }
+
+  @override
+  AppColorsExtension lerp(AppColorsExtension? other, double t) {
+    if (other is! AppColorsExtension) return this;
+    return AppColorsExtension(
+      divider: Color.lerp(divider, other.divider, t)!,
+      cardShadow: Color.lerp(cardShadow, other.cardShadow, t)!,
+      gradientTop: Color.lerp(gradientTop, other.gradientTop, t)!,
+      gradientBottom: Color.lerp(gradientBottom, other.gradientBottom, t)!,
+      scaffold: Color.lerp(scaffold, other.scaffold, t)!,
+      cardSurface: Color.lerp(cardSurface, other.cardSurface, t)!,
+    );
+  }
 }

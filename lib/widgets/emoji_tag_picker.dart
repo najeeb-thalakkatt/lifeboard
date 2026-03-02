@@ -35,8 +35,7 @@ class EmojiTagPicker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final dividerColor = isDark ? AppColors.darkDivider : AppColors.divider;
+    final ext = Theme.of(context).extension<AppColorsExtension>()!;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -70,7 +69,7 @@ class EmojiTagPicker extends StatelessWidget {
                           ? colors.primary.withValues(alpha: 0.12)
                           : colors.surface,
                       border: Border.all(
-                        color: isSelected ? colors.primary : dividerColor,
+                        color: isSelected ? colors.primary : ext.divider,
                         width: isSelected ? 2 : 1,
                       ),
                     ),

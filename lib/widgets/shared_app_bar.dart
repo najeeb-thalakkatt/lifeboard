@@ -5,12 +5,16 @@ class SharedAppBar extends StatelessWidget implements PreferredSizeWidget {
   const SharedAppBar({
     super.key,
     required this.title,
+    this.titleWidget,
     this.actions,
     this.leading,
     this.centerTitle = true,
   });
 
   final String title;
+
+  /// Optional custom title widget. When provided, overrides [title] text.
+  final Widget? titleWidget;
   final List<Widget>? actions;
   final Widget? leading;
   final bool centerTitle;
@@ -21,7 +25,7 @@ class SharedAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
-      title: Text(title),
+      title: titleWidget ?? Text(title),
       centerTitle: centerTitle,
       leading: leading,
       actions: actions,

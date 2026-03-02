@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 
 import 'package:lifeboard/core/constants.dart';
 import 'package:lifeboard/models/task_model.dart';
+import 'package:lifeboard/providers/space_provider.dart';
 import 'package:lifeboard/providers/weekly_provider.dart';
 import 'package:lifeboard/theme/app_colors.dart';
 import 'package:lifeboard/screens/weekly/plan_week_sheet.dart';
@@ -60,7 +61,10 @@ class WeeklyViewScreen extends ConsumerWidget {
               slivers: [
                 // ── Header with week navigation ─────────────
                 SliverToBoxAdapter(
-                  child: _WeekHeader(weekStart: weekStart),
+                  child: _WeekHeader(
+                  weekStart: weekStart,
+                  onPlanWeek: () => _showPlanWeekSheet(context),
+                ),
                 ),
 
                 // ── Weekly Summary Card ─────────────────────
@@ -128,17 +132,12 @@ class WeeklyViewScreen extends ConsumerWidget {
                 else
                   _TaskListSliver(tasks: nextUp),
 
-                // Bottom padding for FAB
-                const SliverPadding(padding: EdgeInsets.only(bottom: 100)),
+                // Bottom padding
+                const SliverPadding(padding: EdgeInsets.only(bottom: 24)),
               ],
             ),
           );
         },
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showPlanWeekSheet(context),
-        icon: const Icon(Icons.edit_calendar),
-        label: const Text('Plan Week'),
       ),
     );
   }
@@ -164,8 +163,9 @@ class WeeklyViewScreen extends ConsumerWidget {
 // ── Week Header with Navigation ──────────────────────────────────────
 
 class _WeekHeader extends ConsumerWidget {
-  const _WeekHeader({required this.weekStart});
+  const _WeekHeader({required this.weekStart, required this.onPlanWeek});
   final DateTime weekStart;
+  final VoidCallback onPlanWeek;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -183,13 +183,45 @@ class _WeekHeader extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'This Week',
-            style: GoogleFonts.nunito(
-              fontSize: 26,
-              fontWeight: FontWeight.bold,
-              color: colors.onSurface,
-            ),
+          Row(
+            children: [
+              Text(
+                'This Week',
+                style: GoogleFonts.nunito(
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                  color: colors.onSurface,
+                ),
+              ),
+              const Spacer(),
+              GestureDetector(
+                onTap: onPlanWeek,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: colors.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.edit_calendar, size: 16,
+                          color: colors.primary),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Plan Week',
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: colors.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 8),
           Row(
@@ -250,13 +282,13 @@ class _WeeklySummaryCard extends StatelessWidget {
     final allDone = total > 0 && completed == total;
     final progress = total > 0 ? completed / total : 0.0;
     final colors = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final ext = Theme.of(context).extension<AppColorsExtension>()!;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Card(
         elevation: 2,
-        shadowColor: isDark ? AppColors.darkCardShadow : AppColors.cardShadow,
+        shadowColor: ext.cardShadow,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Padding(
           padding: const EdgeInsets.all(20),
@@ -404,23 +436,31 @@ class _TaskListSliver extends StatelessWidget {
 
 // ── Weekly Task Card ─────────────────────────────────────────────────
 
-class _WeeklyTaskCard extends StatelessWidget {
+class _WeeklyTaskCard extends ConsumerWidget {
   const _WeeklyTaskCard({required this.entry});
   final ({String spaceId, TaskModel task}) entry;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final task = entry.task;
     final isDone = task.status == 'done';
     final statusLabel = StatusDisplayName.fromStatus(task.status);
     final hasOverdueDueDate =
         task.dueDate != null && task.dueDate!.isBefore(DateTime.now()) && !isDone;
     final colors = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final ext = Theme.of(context).extension<AppColorsExtension>()!;
+
+    // Look up space name for context
+    final spaces = ref.watch(userSpacesProvider).valueOrNull ?? [];
+    final spaceIndex = spaces.indexWhere((s) => s.id == entry.spaceId);
+    final spaceName = spaceIndex >= 0 ? spaces[spaceIndex].name : null;
+    final spaceColor = spaceIndex >= 0
+        ? AppColors.spaceAccents[spaceIndex % AppColors.spaceAccents.length]
+        : colors.primary;
 
     return Card(
       elevation: 1,
-      shadowColor: isDark ? AppColors.darkCardShadow : AppColors.cardShadow,
+      shadowColor: ext.cardShadow,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       margin: const EdgeInsets.only(bottom: 8),
       child: InkWell(
@@ -478,6 +518,27 @@ class _WeeklyTaskCard extends StatelessWidget {
                             ),
                           ),
                         ),
+                        if (spaceName != null) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: spaceColor.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              spaceName,
+                              style: GoogleFonts.inter(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                                color: spaceColor,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
                         if (task.dueDate != null) ...[
                           const SizedBox(width: 8),
                           Icon(

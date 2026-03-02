@@ -14,6 +14,7 @@ import 'package:lifeboard/models/user_model.dart';
 import 'package:lifeboard/providers/auth_provider.dart';
 import 'package:lifeboard/providers/space_provider.dart';
 import 'package:lifeboard/providers/task_provider.dart';
+import 'package:lifeboard/services/firestore_service.dart';
 import 'package:lifeboard/services/storage_service.dart';
 import 'package:lifeboard/theme/app_colors.dart';
 import 'package:lifeboard/theme/app_text_styles.dart';
@@ -26,14 +27,11 @@ import 'package:lifeboard/widgets/stagger_animation.dart';
 /// Streams a single task by spaceId + taskId.
 final taskDetailProvider = StreamProvider.family<TaskModel?,
     ({String spaceId, String taskId})>((ref, params) {
-  final firestore = FirebaseFirestore.instance;
-  return firestore
-      .collection('spaces')
-      .doc(params.spaceId)
-      .collection('tasks')
-      .doc(params.taskId)
-      .snapshots()
-      .map((doc) => doc.exists ? TaskModel.fromFirestore(doc) : null);
+  final firestoreService = ref.read(firestoreServiceProvider);
+  return firestoreService.streamTask(
+    spaceId: params.spaceId,
+    taskId: params.taskId,
+  );
 });
 
 /// Rich task editing screen — the shared note experience.
@@ -337,20 +335,7 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
 
   void _reopenTask(TaskModel task) => _onStatusChanged('todo', task);
 
-  /// Flush any pending debounced changes (called before navigation).
-  void _flushPendingChanges() {
-    if (_titleDebounce?.isActive ?? false) {
-      _titleDebounce!.cancel();
-      final text = _titleController.text.trim();
-      if (text.isNotEmpty) _updateField({'title': text});
-    }
-    if (_descriptionDebounce?.isActive ?? false) {
-      _descriptionDebounce!.cancel();
-      final text = _descriptionController.text;
-      _updateField({'description': text.isEmpty ? null : text});
-    }
-  }
-
+  
   Future<void> _confirmDelete() async {
     final confirmed = await showCupertinoDialog<bool>(
       context: context,
@@ -386,31 +371,32 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
     final currentUser = ref.watch(currentUserProvider).valueOrNull;
 
     final colors = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final gradientColors = isDark
-        ? [AppColors.darkGradientTop, AppColors.darkGradientBottom]
-        : [AppColors.gradientTop, AppColors.gradientBottom];
+    final ext = Theme.of(context).extension<AppColorsExtension>()!;
 
-    return PopScope(
-      canPop: true,
-      onPopInvokedWithResult: (didPop, _) => _flushPendingChanges(),
-      child: Scaffold(
-      backgroundColor: gradientColors[0],
-      appBar: AppBar(
-        backgroundColor: gradientColors[0],
-        elevation: 0,
-        scrolledUnderElevation: 0.5,
-        title: AnimatedOpacity(
-          opacity: _showTitleInAppBar ? 1.0 : 0.0,
-          duration: const Duration(milliseconds: 200),
-          child: Text(
-            _titleController.text,
-            style: AppTextStyles.bodyLarge
-                .copyWith(fontWeight: FontWeight.w600, color: colors.onSurface),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [ext.gradientTop, ext.gradientBottom],
         ),
+      ),
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: ext.gradientTop,
+          elevation: 0,
+          scrolledUnderElevation: 0.5,
+          title: AnimatedOpacity(
+            opacity: _showTitleInAppBar ? 1.0 : 0.0,
+            duration: const Duration(milliseconds: 200),
+            child: Text(
+              _titleController.text,
+              style: AppTextStyles.bodyLarge
+                  .copyWith(fontWeight: FontWeight.w600, color: colors.onSurface),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
         actions: [
           PopupMenuButton<String>(
             icon: const Icon(CupertinoIcons.ellipsis),
@@ -458,7 +444,7 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: gradientColors,
+                colors: [ext.gradientTop, ext.gradientBottom],
               ),
             ),
             child: Column(
@@ -487,6 +473,28 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                                   status: task.status,
                                   onChanged: (s) => _onStatusChanged(s, task),
                                 ),
+                                const SizedBox(height: 12),
+                                // Blocked toggle
+                                _BlockedToggle(
+                                  isBlocked: task.isBlocked,
+                                  blockedReason: task.blockedReason,
+                                  onToggle: (blocked) {
+                                    ref.read(taskActionProvider.notifier)
+                                        .updateTask(
+                                      spaceId: widget.spaceId,
+                                      taskId: widget.taskId,
+                                      fields: {'isBlocked': blocked},
+                                    );
+                                  },
+                                  onReasonChanged: (reason) {
+                                    ref.read(taskActionProvider.notifier)
+                                        .updateTask(
+                                      spaceId: widget.spaceId,
+                                      taskId: widget.taskId,
+                                      fields: {'blockedReason': reason},
+                                    );
+                                  },
+                                ),
                                 const SizedBox(height: 16),
                                 _AssigneePicker(
                                   assignees: task.assignees,
@@ -499,6 +507,18 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                                   dueDate: task.dueDate,
                                   onPick: () => _pickDueDate(task),
                                   onClear: _clearDueDate,
+                                ),
+                                const SizedBox(height: 16),
+                                _RecurrencePicker(
+                                  rule: task.recurrenceRule,
+                                  onChanged: (rule) {
+                                    ref.read(taskActionProvider.notifier)
+                                        .updateTask(
+                                      spaceId: widget.spaceId,
+                                      taskId: widget.taskId,
+                                      fields: {'recurrenceRule': rule},
+                                    );
+                                  },
                                 ),
                               ],
                             ),
@@ -664,7 +684,7 @@ class _SectionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final ext = Theme.of(context).extension<AppColorsExtension>()!;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -673,7 +693,7 @@ class _SectionCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: isDark ? AppColors.darkCardShadow : AppColors.cardShadow,
+            color: ext.cardShadow,
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),
@@ -808,7 +828,6 @@ class _AssigneePicker extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -819,7 +838,9 @@ class _AssigneePicker extends ConsumerWidget {
           _chip(
             label: 'Me',
             avatar: AvatarWidget(
-                name: currentUser?.displayName ?? 'Me',
+                name: (currentUser != null && currentUser!.displayName.isNotEmpty)
+                    ? currentUser!.displayName
+                    : 'Me',
                 imageUrl: currentUser?.photoUrl,
                 radius: 12),
             selected: assignees.contains(uid),
@@ -829,26 +850,62 @@ class _AssigneePicker extends ConsumerWidget {
               onChanged(u);
             },
             colors: colors,
-            isDark: isDark,
+            ctx: context,
           ),
           ...memberIds.where((id) => id != uid).map((mid) {
-                final partnerUser = ref.watch(userByIdProvider(mid)).valueOrNull;
-                final partnerName = partnerUser?.displayName ?? 'Partner';
-                return _chip(
-                label: partnerName,
-                avatar: AvatarWidget(
-                    name: partnerName,
-                    imageUrl: partnerUser?.photoUrl,
-                    radius: 12),
-                selected: assignees.contains(mid),
-                onTap: () {
-                  final u = List<String>.from(assignees);
-                  u.contains(mid) ? u.remove(mid) : u.add(mid);
-                  onChanged(u);
-                },
-                colors: colors,
-                isDark: isDark,
-              );
+                final partnerAsync = ref.watch(userByIdProvider(mid));
+                return partnerAsync.when(
+                  loading: () => _chip(
+                    label: 'Loading...',
+                    avatar: const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: Padding(
+                        padding: EdgeInsets.all(4),
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    ),
+                    selected: assignees.contains(mid),
+                    onTap: () {},
+                    colors: colors,
+                    ctx: context,
+                  ),
+                  error: (_, __) => _chip(
+                    label: 'Team member',
+                    avatar: const AvatarWidget(name: 'Team member', radius: 12),
+                    selected: assignees.contains(mid),
+                    onTap: () {
+                      final u = List<String>.from(assignees);
+                      u.contains(mid) ? u.remove(mid) : u.add(mid);
+                      onChanged(u);
+                    },
+                    colors: colors,
+                    ctx: context,
+                  ),
+                  data: (partnerUser) {
+                    final partnerName =
+                        (partnerUser != null && partnerUser.displayName.isNotEmpty)
+                            ? partnerUser.displayName
+                            : (partnerUser != null && partnerUser.email.isNotEmpty)
+                                ? partnerUser.email.split('@').first
+                                : 'Team member';
+                    return _chip(
+                      label: partnerName,
+                      avatar: AvatarWidget(
+                          name: partnerName,
+                          imageUrl: partnerUser?.photoUrl,
+                          radius: 12),
+                      selected: assignees.contains(mid),
+                      onTap: () {
+                        final u = List<String>.from(assignees);
+                        u.contains(mid) ? u.remove(mid) : u.add(mid);
+                        onChanged(u);
+                      },
+                      colors: colors,
+                      ctx: context,
+                    );
+                  },
+                );
               }),
           if (memberIds.length > 1)
             _chip(
@@ -862,7 +919,7 @@ class _AssigneePicker extends ConsumerWidget {
                 onChanged(all ? [] : List<String>.from(memberIds));
               },
               colors: colors,
-              isDark: isDark,
+              ctx: context,
             ),
         ]),
       ],
@@ -875,8 +932,9 @@ class _AssigneePicker extends ConsumerWidget {
     required bool selected,
     required VoidCallback onTap,
     required ColorScheme colors,
-    required bool isDark,
+    required BuildContext ctx,
   }) {
+    final ext = Theme.of(ctx).extension<AppColorsExtension>()!;
     return Semantics(
       label: '$label assignee',
       selected: selected,
@@ -894,7 +952,7 @@ class _AssigneePicker extends ConsumerWidget {
             border: Border.all(
               color: selected
                   ? colors.primary
-                  : (isDark ? AppColors.darkDivider : AppColors.divider),
+                  : ext.divider,
               width: selected ? 2 : 1,
             ),
           ),
@@ -940,7 +998,7 @@ class _DueDateRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final ext = Theme.of(context).extension<AppColorsExtension>()!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -959,7 +1017,7 @@ class _DueDateRow extends StatelessWidget {
                 color: colors.primaryContainer.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                    color: isDark ? AppColors.darkDivider : AppColors.divider),
+                    color: ext.divider),
               ),
               child: Row(children: [
                 Icon(CupertinoIcons.calendar,
@@ -1055,7 +1113,7 @@ class _SubtasksSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final ext = Theme.of(context).extension<AppColorsExtension>()!;
     final done = subtasks.where((s) => s.completed).length;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1077,8 +1135,7 @@ class _SubtasksSection extends StatelessWidget {
             child: LinearProgressIndicator(
               value: subtasks.isEmpty ? 0 : done / subtasks.length,
               minHeight: 3,
-              backgroundColor: (isDark ? AppColors.darkDivider : AppColors.divider)
-                  .withValues(alpha: 0.5),
+              backgroundColor: ext.divider.withValues(alpha: 0.5),
               valueColor: AlwaysStoppedAnimation(
                 done == subtasks.length
                     ? AppColors.statusDone
@@ -1140,7 +1197,7 @@ class _SubtasksSection extends StatelessWidget {
                           border: Border.all(
                               color: s.completed
                                   ? colors.primary
-                                  : (isDark ? AppColors.darkDivider : AppColors.divider),
+                                  : ext.divider,
                               width: 2),
                         ),
                         child: s.completed
@@ -1226,7 +1283,7 @@ class _AttachmentsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final ext = Theme.of(context).extension<AppColorsExtension>()!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1302,7 +1359,7 @@ class _AttachmentsSection extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                       color: colors.primaryContainer,
                       border: Border.all(
-                          color: isDark ? AppColors.darkDivider : AppColors.divider),
+                          color: ext.divider),
                     ),
                     clipBehavior: Clip.antiAlias,
                     child: isImg
@@ -1374,8 +1431,8 @@ class _MarkDoneButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final gradientBase = isDark ? AppColors.darkGradientBottom : AppColors.gradientBottom;
+    final ext = Theme.of(context).extension<AppColorsExtension>()!;
+    final gradientBase = ext.gradientBottom;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
@@ -1414,8 +1471,8 @@ class _ReopenButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final gradientBase = isDark ? AppColors.darkGradientBottom : AppColors.gradientBottom;
+    final ext = Theme.of(context).extension<AppColorsExtension>()!;
+    final gradientBase = ext.gradientBottom;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
@@ -1444,6 +1501,248 @@ class _ReopenButton extends StatelessWidget {
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         ),
       ),
+    );
+  }
+}
+
+/// Toggle for marking a task as blocked with an optional reason.
+class _BlockedToggle extends StatefulWidget {
+  const _BlockedToggle({
+    required this.isBlocked,
+    this.blockedReason,
+    required this.onToggle,
+    required this.onReasonChanged,
+  });
+
+  final bool isBlocked;
+  final String? blockedReason;
+  final ValueChanged<bool> onToggle;
+  final ValueChanged<String> onReasonChanged;
+
+  @override
+  State<_BlockedToggle> createState() => _BlockedToggleState();
+}
+
+class _BlockedToggleState extends State<_BlockedToggle> {
+  late final TextEditingController _reasonController;
+  Timer? _debounce;
+
+  @override
+  void initState() {
+    super.initState();
+    _reasonController = TextEditingController(text: widget.blockedReason ?? '');
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _reasonController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(
+              Icons.block,
+              size: 16,
+              color: widget.isBlocked
+                  ? AppColors.error
+                  : colors.onSurface.withValues(alpha: 0.5),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'Blocked',
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: widget.isBlocked ? AppColors.error : colors.onSurface,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const Spacer(),
+            CupertinoSwitch(
+              value: widget.isBlocked,
+              activeTrackColor: AppColors.error,
+              onChanged: widget.onToggle,
+            ),
+          ],
+        ),
+        if (widget.isBlocked) ...[
+          const SizedBox(height: 8),
+          TextField(
+            controller: _reasonController,
+            style: AppTextStyles.bodyMedium.copyWith(color: colors.onSurface),
+            decoration: InputDecoration(
+              hintText: 'Blocked by...',
+              hintStyle: AppTextStyles.bodyMedium.copyWith(
+                color: colors.onSurface.withValues(alpha: 0.4),
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(
+                    color: AppColors.error.withValues(alpha: 0.3)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(
+                    color: AppColors.error.withValues(alpha: 0.3)),
+              ),
+              isDense: true,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            ),
+            onChanged: (value) {
+              _debounce?.cancel();
+              _debounce = Timer(const Duration(milliseconds: 500), () {
+                widget.onReasonChanged(value);
+              });
+            },
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+// ── Recurrence Picker ───────────────────────────────────────────────
+
+class _RecurrencePicker extends StatelessWidget {
+  const _RecurrencePicker({required this.rule, required this.onChanged});
+  final String rule;
+  final ValueChanged<String> onChanged;
+
+  static const _options = [
+    ('never', 'Never', Icons.block_outlined),
+    ('daily', 'Daily', Icons.today),
+    ('weekly', 'Weekly', Icons.view_week),
+    ('biweekly', 'Every 2 weeks', Icons.date_range),
+    ('monthly', 'Monthly', Icons.calendar_month),
+  ];
+
+  String _displayLabel(String rule) {
+    switch (rule) {
+      case 'daily':
+        return 'Repeats daily';
+      case 'weekly':
+        return 'Repeats weekly';
+      case 'biweekly':
+        return 'Every 2 weeks';
+      case 'monthly':
+        return 'Repeats monthly';
+      default:
+        return 'No repeat';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final isRecurring = rule != 'never';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _TaskDetailScreenState._sectionLabel('Repeat', ctx: context),
+        const SizedBox(height: 8),
+        Semantics(
+          label: _displayLabel(rule),
+          child: GestureDetector(
+            onTap: () => _showPicker(context),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: isRecurring
+                    ? colors.primary.withValues(alpha: 0.08)
+                    : colors.surfaceContainerHighest.withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: isRecurring
+                      ? colors.primary.withValues(alpha: 0.3)
+                      : colors.outline.withValues(alpha: 0.2),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    isRecurring ? Icons.repeat : Icons.repeat,
+                    size: 18,
+                    color: isRecurring
+                        ? colors.primary
+                        : colors.onSurface.withValues(alpha: 0.5),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    _displayLabel(rule),
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color: isRecurring
+                          ? colors.primary
+                          : colors.onSurface.withValues(alpha: 0.6),
+                    ),
+                  ),
+                  const Spacer(),
+                  Icon(
+                    Icons.chevron_right,
+                    size: 18,
+                    color: colors.onSurface.withValues(alpha: 0.3),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showPicker(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    showModalBottomSheet<void>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text('Repeat', style: AppTextStyles.headingSmall),
+              ),
+              ..._options.map((option) {
+                final isSelected = rule == option.$1;
+                return ListTile(
+                  leading: Icon(
+                    option.$3,
+                    color: isSelected ? colors.primary : colors.onSurface.withValues(alpha: 0.6),
+                  ),
+                  title: Text(
+                    option.$2,
+                    style: TextStyle(
+                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                      color: isSelected ? colors.primary : colors.onSurface,
+                    ),
+                  ),
+                  trailing: isSelected
+                      ? Icon(Icons.check, color: colors.primary)
+                      : null,
+                  onTap: () {
+                    onChanged(option.$1);
+                    Navigator.of(ctx).pop();
+                  },
+                );
+              }),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
     );
   }
 }

@@ -5,12 +5,14 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:lifeboard/models/activity_model.dart';
+import 'package:lifeboard/providers/auth_provider.dart';
 import 'package:lifeboard/providers/space_provider.dart';
+import 'package:lifeboard/app.dart';
 import 'package:lifeboard/services/notification_service.dart';
 
 /// Provides the [NotificationService] singleton.
 final notificationServiceProvider = Provider<NotificationService>((ref) {
-  return NotificationService();
+  return NotificationService(navigatorKey: rootNavigatorKey);
 });
 
 /// Streams aggregated activity feed across all user's spaces.
@@ -68,6 +70,7 @@ Stream<List<ActivityModel>> _combineActivityStreams(
     for (final sub in subscriptions) {
       sub.cancel();
     }
+    controller.close();
   };
 
   return controller.stream;
@@ -75,7 +78,8 @@ Stream<List<ActivityModel>> _combineActivityStreams(
 
 /// Streams the unread activity count for the badge.
 final unreadActivityCountProvider = StreamProvider<int>((ref) {
-  final user = FirebaseAuth.instance.currentUser;
+  final authState = ref.watch(authStateProvider);
+  final user = authState.valueOrNull;
   if (user == null) return Stream.value(0);
 
   // Listen to the user doc for lastActivityReadAt changes

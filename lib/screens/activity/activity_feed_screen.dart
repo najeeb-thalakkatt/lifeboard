@@ -160,14 +160,14 @@ class _ActivityCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final ext = Theme.of(context).extension<AppColorsExtension>()!;
     final icon = _typeIcons[activity.type] ?? Icons.notifications_outlined;
     final accentColor = _typeColors[activity.type] ?? colors.primary;
     final userId = FirebaseAuth.instance.currentUser?.uid;
 
     return Card(
       elevation: 1,
-      shadowColor: isDark ? AppColors.darkCardShadow : AppColors.cardShadow,
+      shadowColor: ext.cardShadow,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       margin: const EdgeInsets.only(bottom: 8),
       clipBehavior: Clip.antiAlias,

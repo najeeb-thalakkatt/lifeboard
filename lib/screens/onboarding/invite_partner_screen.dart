@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:share_plus/share_plus.dart';
 
 import 'package:lifeboard/models/space_model.dart';
 import 'package:lifeboard/theme/app_colors.dart';
@@ -16,7 +17,7 @@ class InvitePartnerScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final ext = Theme.of(context).extension<AppColorsExtension>()!;
     return Scaffold(
       appBar: AppBar(
         elevation: 0,
@@ -117,15 +118,15 @@ class InvitePartnerScreen extends StatelessWidget {
 
               const Spacer(flex: 1),
 
-              // Copy button
+              // Share button
               SizedBox(
                 width: double.infinity,
                 height: 52,
                 child: FilledButton.icon(
-                  onPressed: () => _copyCode(context),
-                  icon: const Icon(Icons.copy_rounded, size: 18),
+                  onPressed: () => _shareCode(context),
+                  icon: const Icon(Icons.share_rounded, size: 18),
                   label: Text(
-                    'Copy Invite Code',
+                    'Share Invite Code',
                     style: AppTextStyles.button.copyWith(fontSize: 16),
                   ),
                   style: FilledButton.styleFrom(
@@ -147,7 +148,7 @@ class InvitePartnerScreen extends StatelessWidget {
                   onPressed: () => context.go('/spaces'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: colors.primary,
-                    side: BorderSide(color: isDark ? AppColors.darkDivider : AppColors.divider),
+                    side: BorderSide(color: ext.divider),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
@@ -166,6 +167,14 @@ class InvitePartnerScreen extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  void _shareCode(BuildContext context) {
+    SharePlus.instance.share(
+      ShareParams(
+        text: 'Join my Lifeboard space "${space.name}"! Use invite code: ${space.inviteCode}',
       ),
     );
   }

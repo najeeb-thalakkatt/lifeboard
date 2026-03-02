@@ -62,6 +62,14 @@ class StorageService {
     required String taskId,
     required XFile file,
   }) async {
+    final length = await file.length();
+    if (length > maxFileSize) {
+      throw Exception(
+        'File too large (${(length / 1024 / 1024).toStringAsFixed(1)} MB). '
+        'Maximum allowed size is ${maxFileSize ~/ 1024 ~/ 1024} MB.',
+      );
+    }
+
     final fileName =
         '${DateTime.now().millisecondsSinceEpoch}_${file.name}';
     final ref = _storage.ref('spaces/$spaceId/tasks/$taskId/$fileName');
@@ -91,6 +99,14 @@ class StorageService {
     required String taskId,
     required PlatformFile file,
   }) async {
+    final fileSize = file.size;
+    if (fileSize > maxFileSize) {
+      throw Exception(
+        'File too large (${(fileSize / 1024 / 1024).toStringAsFixed(1)} MB). '
+        'Maximum allowed size is ${maxFileSize ~/ 1024 ~/ 1024} MB.',
+      );
+    }
+
     final fileName =
         '${DateTime.now().millisecondsSinceEpoch}_${file.name}';
     final ref = _storage.ref('spaces/$spaceId/tasks/$taskId/$fileName');

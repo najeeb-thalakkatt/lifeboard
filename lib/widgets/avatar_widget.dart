@@ -22,20 +22,26 @@ class AvatarWidget extends StatelessWidget {
       backgroundImage:
           imageUrl != null ? NetworkImage(imageUrl!) : null,
       child: imageUrl == null
-          ? Text(
-              _initials,
-              style: TextStyle(
-                fontSize: radius * 0.8,
-                fontWeight: FontWeight.w600,
-                color: colors.primary,
-              ),
-            )
+          ? _initials != null
+              ? Text(
+                  _initials!,
+                  style: TextStyle(
+                    fontSize: radius * 0.8,
+                    fontWeight: FontWeight.w600,
+                    color: colors.primary,
+                  ),
+                )
+              : Icon(
+                  Icons.person,
+                  size: radius * 0.9,
+                  color: colors.primary,
+                )
           : null,
     );
   }
 
-  String get _initials {
-    if (name == null || name!.isEmpty) return '?';
+  String? get _initials {
+    if (name == null || name!.trim().isEmpty) return null;
     final parts = name!.trim().split(' ');
     if (parts.length >= 2) {
       return '${parts[0][0]}${parts[1][0]}'.toUpperCase();

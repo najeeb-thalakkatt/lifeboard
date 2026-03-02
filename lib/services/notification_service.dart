@@ -1,6 +1,11 @@
+import 'dart:io';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:lifeboard/services/firestore_service.dart';
 
@@ -10,17 +15,24 @@ class NotificationService {
   NotificationService({
     FirebaseMessaging? messaging,
     FirestoreService? firestoreService,
+    this.navigatorKey,
   })  : _messaging = messaging ?? FirebaseMessaging.instance,
         _firestoreService = firestoreService ?? FirestoreService();
 
   final FirebaseMessaging _messaging;
   final FirestoreService _firestoreService;
 
+  /// Navigator key used for deep linking on notification tap.
+  final GlobalKey<NavigatorState>? navigatorKey;
+
   /// Initializes notification handling for the current platform.
   /// Call this after Firebase is initialized and the user is signed in.
   Future<void> initialize() async {
     // Request permissions (iOS requires explicit request)
     await _requestPermission();
+
+    // Create Android notification channel
+    await _createAndroidNotificationChannel();
 
     // Get and save FCM token
     await _saveToken();
@@ -46,6 +58,25 @@ class NotificationService {
     if (initialMessage != null) {
       _handleNotificationTap(initialMessage);
     }
+  }
+
+  /// Creates the Android notification channel used by FCM.
+  /// Required on Android 8+ (API 26) for notifications to appear.
+  Future<void> _createAndroidNotificationChannel() async {
+    if (kIsWeb || !Platform.isAndroid) return;
+
+    final flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+    const androidChannel = AndroidNotificationChannel(
+      'lifeboard_updates',
+      'Lifeboard Updates',
+      description: 'Notifications for task and comment updates',
+      importance: Importance.high,
+    );
+
+    await flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(androidChannel);
   }
 
   /// Requests notification permissions.
@@ -74,14 +105,9 @@ class NotificationService {
   /// Gets the current FCM token and saves it to Firestore.
   Future<void> _saveToken() async {
     try {
-      String? token;
-
-      if (kIsWeb) {
-        // Web requires a VAPID key — skip if not configured
-        token = await _messaging.getToken();
-      } else {
-        token = await _messaging.getToken();
-      }
+      // NOTE: On web, getToken() requires a VAPID key passed as webPushCertificate.
+      // Add it here when configured: _messaging.getToken(vapidKey: 'YOUR_KEY')
+      final token = await _messaging.getToken();
 
       if (token != null) {
         await _saveTokenToFirestore(token);
@@ -115,12 +141,25 @@ class NotificationService {
   }
 
   /// Handles taps on notifications (background + terminated state).
+  /// Navigates to the relevant screen based on the FCM data payload.
   void _handleNotificationTap(RemoteMessage message) {
     debugPrint(
       '[NotificationService] Notification tapped: ${message.data}',
     );
-    // Navigation based on notification data can be wired here.
-    // The data payload includes 'type' and 'spaceId' from Cloud Functions.
+
+    final context = navigatorKey?.currentContext;
+    if (context == null) return;
+
+    final spaceId = message.data['spaceId'] as String?;
+    final taskId = message.data['taskId'] as String?;
+
+    if (spaceId != null && taskId != null) {
+      GoRouter.of(context).go('/spaces/$spaceId/task/$taskId');
+    } else if (spaceId != null) {
+      GoRouter.of(context).go('/spaces/$spaceId');
+    } else {
+      GoRouter.of(context).go('/spaces');
+    }
   }
 
   /// Removes the current FCM token (call on sign out).

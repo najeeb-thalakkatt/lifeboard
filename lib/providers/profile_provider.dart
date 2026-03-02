@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:lifeboard/providers/activity_provider.dart';
 import 'package:lifeboard/providers/auth_provider.dart';
 import 'package:lifeboard/providers/space_provider.dart';
 
@@ -23,6 +24,8 @@ class ThemeModeNotifier extends StateNotifier<ThemeMode> {
       state = ThemeMode.dark;
     } else if (value == 'system') {
       state = ThemeMode.system;
+    } else if (value == 'light') {
+      state = ThemeMode.light;
     }
   }
 
@@ -141,15 +144,17 @@ class ProfileActionNotifier extends StateNotifier<AsyncValue<void>> {
 
   /// Updates display name on the user doc.
   Future<void> updateDisplayName(String name) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
     state = const AsyncLoading();
     try {
-      final userId = FirebaseAuth.instance.currentUser!.uid;
       final firestoreService = _ref.read(firestoreServiceProvider);
       await firestoreService.updateUserProfile(
-        userId: userId,
+        userId: user.uid,
         fields: {'displayName': name},
       );
-      await FirebaseAuth.instance.currentUser!.updateDisplayName(name);
+      await user.updateDisplayName(name);
       state = const AsyncData(null);
     } catch (e, st) {
       state = AsyncError(e, st);
@@ -158,11 +163,13 @@ class ProfileActionNotifier extends StateNotifier<AsyncValue<void>> {
 
   /// Updates the mood emoji.
   Future<void> updateMoodEmoji(String? emoji) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
     try {
-      final userId = FirebaseAuth.instance.currentUser!.uid;
       final firestoreService = _ref.read(firestoreServiceProvider);
       await firestoreService.updateUserProfile(
-        userId: userId,
+        userId: user.uid,
         fields: {'moodEmoji': emoji},
       );
     } catch (e, st) {
@@ -172,14 +179,16 @@ class ProfileActionNotifier extends StateNotifier<AsyncValue<void>> {
 
   /// Updates photo URL after upload.
   Future<void> updatePhotoUrl(String url) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
     try {
-      final userId = FirebaseAuth.instance.currentUser!.uid;
       final firestoreService = _ref.read(firestoreServiceProvider);
       await firestoreService.updateUserProfile(
-        userId: userId,
+        userId: user.uid,
         fields: {'photoUrl': url},
       );
-      await FirebaseAuth.instance.currentUser!.updatePhotoURL(url);
+      await user.updatePhotoURL(url);
     } catch (e, st) {
       state = AsyncError(e, st);
     }
@@ -190,11 +199,13 @@ class ProfileActionNotifier extends StateNotifier<AsyncValue<void>> {
     required bool pushEnabled,
     required bool emailEnabled,
   }) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
     try {
-      final userId = FirebaseAuth.instance.currentUser!.uid;
       final firestoreService = _ref.read(firestoreServiceProvider);
       await firestoreService.updateNotificationPrefs(
-        userId: userId,
+        userId: user.uid,
         pushEnabled: pushEnabled,
         emailEnabled: emailEnabled,
       );
@@ -205,11 +216,13 @@ class ProfileActionNotifier extends StateNotifier<AsyncValue<void>> {
 
   /// Leaves a space.
   Future<void> leaveSpace(String spaceId) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
     state = const AsyncLoading();
     try {
-      final userId = FirebaseAuth.instance.currentUser!.uid;
       final firestoreService = _ref.read(firestoreServiceProvider);
-      await firestoreService.leaveSpace(spaceId: spaceId, userId: userId);
+      await firestoreService.leaveSpace(spaceId: spaceId, userId: user.uid);
       _ref.invalidate(userSpacesProvider);
       state = const AsyncData(null);
     } catch (e, st) {
@@ -219,11 +232,13 @@ class ProfileActionNotifier extends StateNotifier<AsyncValue<void>> {
 
   /// Deletes a space (owner only).
   Future<void> deleteSpace(String spaceId) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
     state = const AsyncLoading();
     try {
-      final userId = FirebaseAuth.instance.currentUser!.uid;
       final firestoreService = _ref.read(firestoreServiceProvider);
-      await firestoreService.deleteSpace(spaceId: spaceId, userId: userId);
+      await firestoreService.deleteSpace(spaceId: spaceId, userId: user.uid);
       _ref.invalidate(userSpacesProvider);
       state = const AsyncData(null);
     } catch (e, st) {
@@ -236,9 +251,11 @@ class ProfileActionNotifier extends StateNotifier<AsyncValue<void>> {
     required String currentPassword,
     required String newPassword,
   }) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null || user.email == null) return;
+
     state = const AsyncLoading();
     try {
-      final user = FirebaseAuth.instance.currentUser!;
       final credential = EmailAuthProvider.credential(
         email: user.email!,
         password: currentPassword,
@@ -253,19 +270,33 @@ class ProfileActionNotifier extends StateNotifier<AsyncValue<void>> {
 
   /// Signs out the current user.
   Future<void> signOut() async {
+    try {
+      await _ref.read(notificationServiceProvider).removeToken();
+    } catch (_) {
+      // Best-effort token cleanup — don't block sign-out
+    }
     final authService = _ref.read(authServiceProvider);
     await authService.signOut();
   }
 
   /// Deletes the user's account (Firestore data + Firebase Auth).
+  /// Throws [FirebaseAuthException] with code 'requires-recent-login' if
+  /// the session is too old — the caller should prompt re-authentication.
   Future<void> deleteAccount() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
     state = const AsyncLoading();
     try {
-      final user = FirebaseAuth.instance.currentUser!;
       final firestoreService = _ref.read(firestoreServiceProvider);
       await firestoreService.deleteUserAccount(userId: user.uid);
       await user.delete();
       state = const AsyncData(null);
+    } on FirebaseAuthException catch (e, st) {
+      state = AsyncError(e, st);
+      if (e.code == 'requires-recent-login') {
+        rethrow;
+      }
     } catch (e, st) {
       state = AsyncError(e, st);
     }

@@ -1,5 +1,6 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
+import {sendFcmToSpaceMembers} from "./fcm";
 
 if (!admin.apps.length) {
   admin.initializeApp();
@@ -74,112 +75,98 @@ export const onTaskWrite = functions.firestore
     await activityRef.set(activityData);
 
     // Send FCM to other space members
-    await sendFcmToSpaceMembers(spaceId, actorId, message, taskTitle);
+    await sendFcmToSpaceMembers(spaceId, actorId, message, "activity", taskId);
+
+    // ── Recurring task: auto-create next occurrence on completion ──
+    if (
+      activityType === "task_completed" &&
+      after.recurrenceRule &&
+      after.recurrenceRule !== "never"
+    ) {
+      const nextDue = computeNextDueDate(
+        after.dueDate ? after.dueDate.toDate() : new Date(),
+        after.recurrenceRule
+      );
+
+      const newTaskData: Record<string, unknown> = {
+        title: after.title,
+        description: after.description || null,
+        status: "todo",
+        boardId: after.boardId,
+        assignees: after.assignees || [],
+        dueDate: nextDue
+          ? admin.firestore.Timestamp.fromDate(nextDue)
+          : null,
+        emojiTag: after.emojiTag || null,
+        subtasks: (after.subtasks || []).map(
+          (s: {id: string; title: string}) => ({
+            ...s,
+            completed: false,
+          })
+        ),
+        attachments: [],
+        isWeeklyTask: false,
+        weekStart: null,
+        order: 0,
+        completedAt: null,
+        archivedAt: null,
+        isBlocked: false,
+        blockedReason: null,
+        recurrenceRule: after.recurrenceRule,
+        createdBy: actorId,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      };
+
+      await db
+        .collection("spaces")
+        .doc(spaceId)
+        .collection("tasks")
+        .add(newTaskData);
+    }
   });
 
 /**
- * Sends FCM push notifications to all space members except the actor.
+ * Computes the next due date based on the recurrence rule.
  */
-async function sendFcmToSpaceMembers(
-  spaceId: string,
-  actorId: string,
-  body: string,
-  _taskTitle: string
-): Promise<void> {
-  // Get space to find members
-  const spaceDoc = await db.collection("spaces").doc(spaceId).get();
-  if (!spaceDoc.exists) return;
-
-  const spaceData = spaceDoc.data();
-  if (!spaceData || !spaceData.members) return;
-
-  const memberIds: string[] = Object.keys(spaceData.members).filter(
-    (id) => id !== actorId
-  );
-  if (memberIds.length === 0) return;
-
-  // Get actor's display name
-  const actorDoc = await db.collection("users").doc(actorId).get();
-  const actorName: string = actorDoc.exists
-    ? (actorDoc.data()?.displayName || "Someone")
-    : "Someone";
-
-  // Collect FCM tokens from members
-  const tokens: string[] = [];
-  for (const memberId of memberIds) {
-    const userDoc = await db.collection("users").doc(memberId).get();
-    if (!userDoc.exists) continue;
-
-    const userData = userDoc.data();
-    if (!userData) continue;
-
-    // Check notification preferences
-    const prefs = userData.notificationPrefs;
-    if (prefs && prefs.pushEnabled === false) continue;
-
-    const userTokens: string[] = userData.fcmTokens || [];
-    tokens.push(...userTokens);
+function computeNextDueDate(
+  currentDue: Date,
+  rule: string
+): Date | null {
+  const next = new Date(currentDue);
+  switch (rule) {
+    case "daily":
+      next.setDate(next.getDate() + 1);
+      break;
+    case "weekly":
+      next.setDate(next.getDate() + 7);
+      break;
+    case "biweekly":
+      next.setDate(next.getDate() + 14);
+      break;
+    case "monthly":
+      next.setMonth(next.getMonth() + 1);
+      break;
+    default:
+      return null;
   }
-
-  if (tokens.length === 0) return;
-
-  // Send multicast message
-  const payload: admin.messaging.MulticastMessage = {
-    tokens: tokens,
-    notification: {
-      title: "Lifeboard",
-      body: `${actorName} ${body}`,
-    },
-    data: {
-      type: "activity",
-      spaceId: spaceId,
-    },
-    apns: {
-      payload: {
-        aps: {
-          sound: "default",
-          badge: 1,
-        },
-      },
-    },
-    android: {
-      notification: {
-        channelId: "lifeboard_updates",
-        sound: "default",
-      },
-    },
-  };
-
-  try {
-    const response = await admin.messaging().sendEachForMulticast(payload);
-    // Clean up invalid tokens
-    if (response.failureCount > 0) {
-      const invalidTokens: string[] = [];
-      response.responses.forEach((resp, idx) => {
-        if (resp.error) {
-          const code = resp.error.code;
-          if (
-            code === "messaging/invalid-registration-token" ||
-            code === "messaging/registration-token-not-registered"
-          ) {
-            invalidTokens.push(tokens[idx]);
-          }
-        }
-      });
-      // Remove invalid tokens from user docs
-      for (const token of invalidTokens) {
-        for (const memberId of memberIds) {
-          await db
-            .collection("users")
-            .doc(memberId)
-            .update({
-              fcmTokens: admin.firestore.FieldValue.arrayRemove([token]),
-            })
-            .catch(() => {/* ignore */});
-        }
-      }
+  // If the computed date is in the past, jump to the next occurrence from today
+  const now = new Date();
+  while (next <= now) {
+    switch (rule) {
+      case "daily":
+        next.setDate(next.getDate() + 1);
+        break;
+      case "weekly":
+        next.setDate(next.getDate() + 7);
+        break;
+      case "biweekly":
+        next.setDate(next.getDate() + 14);
+        break;
+      case "monthly":
+        next.setMonth(next.getMonth() + 1);
+        break;
     }
-  } catch (error) {
-    functions.logger.error("Error sending FCM:", error);
   }
+  return next;
 }

@@ -12,6 +12,8 @@ abstract class BoardModel with _$BoardModel {
     required String name,
     @Default('') String theme,
     @Default(['todo', 'in_progress', 'done']) List<String> columns,
+    /// WIP limits per column status. Null or absent means no limit.
+    @Default({}) Map<String, int> wipLimits,
     required String createdBy,
     required DateTime createdAt,
   }) = _BoardModel;
@@ -29,6 +31,9 @@ abstract class BoardModel with _$BoardModel {
       theme: data['theme'] as String? ?? '',
       columns: List<String>.from(
           data['columns'] as List? ?? ['todo', 'in_progress', 'done']),
+      wipLimits: (data['wipLimits'] as Map<String, dynamic>?)?.map(
+              (k, v) => MapEntry(k, v as int)) ??
+          {},
       createdBy: data['createdBy'] as String? ?? '',
       createdAt:
           (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
@@ -41,6 +46,7 @@ abstract class BoardModel with _$BoardModel {
       'name': model.name,
       'theme': model.theme,
       'columns': model.columns,
+      'wipLimits': model.wipLimits,
       'createdBy': model.createdBy,
       'createdAt': Timestamp.fromDate(model.createdAt),
     };

@@ -3,17 +3,22 @@ import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 
+import 'package:lifeboard/core/constants.dart';
+import 'package:lifeboard/core/errors/app_exceptions.dart';
 import 'package:lifeboard/models/space_model.dart';
+import 'package:lifeboard/models/user_model.dart';
 import 'package:lifeboard/providers/auth_provider.dart';
 import 'package:lifeboard/providers/profile_provider.dart';
 import 'package:lifeboard/providers/space_provider.dart';
 import 'package:lifeboard/theme/app_colors.dart';
+import 'package:lifeboard/theme/app_text_styles.dart';
 import 'package:lifeboard/widgets/avatar_widget.dart';
 
 /// Profile & Settings screen (Phase 10).
@@ -146,7 +151,7 @@ class _SectionHeader extends StatelessWidget {
 
 class _ProfileCard extends ConsumerStatefulWidget {
   const _ProfileCard({required this.user});
-  final dynamic user; // UserModel?
+  final UserModel? user;
 
   @override
   ConsumerState<_ProfileCard> createState() => _ProfileCardState();
@@ -358,7 +363,9 @@ class _ProfileCardState extends ConsumerState<_ProfileCard> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      user?.displayName ?? 'Set your name',
+                      (user != null && user.displayName.isNotEmpty)
+                          ? user.displayName
+                          : 'Set your name',
                       style: GoogleFonts.nunito(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
@@ -430,7 +437,7 @@ class _MoodChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final ext = Theme.of(context).extension<AppColorsExtension>()!;
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -441,7 +448,7 @@ class _MoodChip extends StatelessWidget {
           border: Border.all(
             color: isSelected
                 ? colors.primary
-                : (isDark ? AppColors.darkDivider : AppColors.divider),
+                : ext.divider,
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -566,7 +573,7 @@ class _BadgesRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final ext = Theme.of(context).extension<AppColorsExtension>()!;
     final badges = <_Badge>[
       _Badge(icon: '👶', name: 'First Steps', earned: totalCompleted >= 1),
       _Badge(icon: '🤝', name: 'Team Player', earned: totalCompleted >= 10),
@@ -599,7 +606,7 @@ class _BadgesRow extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: badge.earned
                       ? colors.primaryContainer
-                      : (isDark ? AppColors.darkCardSurface : Colors.grey[100]),
+                      : ext.cardSurface,
                   borderRadius: BorderRadius.circular(12),
                   border: badge.earned
                       ? Border.all(color: AppColors.accentWarm, width: 2)
@@ -668,6 +675,68 @@ class _SpacesList extends ConsumerWidget {
             ),
             if (i < spaces.length - 1) const Divider(height: 1, indent: 16, endIndent: 16),
           ],
+          const Divider(height: 1, indent: 16, endIndent: 16),
+          ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            leading: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: colors.primaryContainer,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(Icons.add_rounded, color: colors.primary, size: 20),
+            ),
+            title: Text(
+              'Create new space',
+              style: GoogleFonts.inter(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: colors.primary,
+              ),
+            ),
+            onTap: () {
+              showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                ),
+                builder: (_) => _CreateSpaceSheet(userId: userId),
+              );
+            },
+          ),
+          const Divider(height: 1, indent: 16, endIndent: 16),
+          ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            leading: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: colors.primaryContainer,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(Icons.group_add_outlined, color: colors.primary, size: 20),
+            ),
+            title: Text(
+              'Join a space',
+              style: GoogleFonts.inter(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: colors.primary,
+              ),
+            ),
+            onTap: () {
+              showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                ),
+                builder: (_) => _JoinSpaceSheet(userId: userId),
+              );
+            },
+          ),
         ],
       ),
     );
@@ -711,6 +780,7 @@ class _SpaceTile extends ConsumerWidget {
           color: colors.onSurface.withValues(alpha: 0.5),
         ),
       ),
+      onTap: () => _showMembersSheet(context, ref),
       trailing: PopupMenuButton<String>(
         icon: Icon(Icons.more_vert, color: colors.onSurface.withValues(alpha: 0.5)),
         onSelected: (value) {
@@ -835,14 +905,18 @@ class _SpaceTile extends ConsumerWidget {
   }
 
   void _confirmLeave(BuildContext context, WidgetRef ref) {
-    showDialog(
+    showCupertinoDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => CupertinoAlertDialog(
         title: const Text('Leave space?'),
         content: Text('Are you sure you want to leave "${space.name}"?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          FilledButton(
+          CupertinoDialogAction(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          CupertinoDialogAction(
+            isDestructiveAction: true,
             onPressed: () {
               Navigator.pop(ctx);
               ref.read(profileActionProvider.notifier).leaveSpace(space.id);
@@ -857,18 +931,31 @@ class _SpaceTile extends ConsumerWidget {
     );
   }
 
-  void _confirmDelete(BuildContext context, WidgetRef ref) {
-    showDialog(
+  void _showMembersSheet(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet(
       context: context,
-      builder: (ctx) => AlertDialog(
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => _SpaceMembersSheet(space: space, currentUserId: userId),
+    );
+  }
+
+  void _confirmDelete(BuildContext context, WidgetRef ref) {
+    showCupertinoDialog(
+      context: context,
+      builder: (ctx) => CupertinoAlertDialog(
         title: const Text('Delete space?'),
         content: Text(
           'This will permanently delete "${space.name}" and all its boards and tasks. This cannot be undone.',
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+          CupertinoDialogAction(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          CupertinoDialogAction(
+            isDestructiveAction: true,
             onPressed: () {
               Navigator.pop(ctx);
               ref.read(profileActionProvider.notifier).deleteSpace(space.id);
@@ -895,7 +982,6 @@ class _PreferencesCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final pushEnabled = user?.notificationPrefs.pushEnabled ?? true;
     final emailEnabled = user?.notificationPrefs.emailEnabled ?? true;
-    final colors = Theme.of(context).colorScheme;
 
     return Card(
       margin: EdgeInsets.zero,
@@ -903,17 +989,10 @@ class _PreferencesCard extends ConsumerWidget {
       child: Column(
         children: [
           // ── Theme Toggle ──────────────────────────────────
-          SwitchListTile(
-            secondary: Icon(Icons.dark_mode_outlined, color: colors.primary),
-            title: Text(
-              'Dark mode',
-              style: GoogleFonts.inter(
-                fontSize: 15,
-                color: colors.onSurface,
-              ),
-            ),
-            value: themeMode == ThemeMode.dark,
-            activeThumbColor: colors.primary,
+          _CupertinoSwitchRow(
+            icon: Icons.dark_mode_outlined,
+            label: 'Dark mode',
+            value: Theme.of(context).brightness == Brightness.dark,
             onChanged: (val) {
               ref.read(themeModeProvider.notifier)
                   .setThemeMode(val ? ThemeMode.dark : ThemeMode.light);
@@ -922,17 +1001,10 @@ class _PreferencesCard extends ConsumerWidget {
           const Divider(height: 1, indent: 16, endIndent: 16),
 
           // ── Push Notifications ────────────────────────────
-          SwitchListTile(
-            secondary: Icon(Icons.notifications_outlined, color: colors.primary),
-            title: Text(
-              'Push notifications',
-              style: GoogleFonts.inter(
-                fontSize: 15,
-                color: colors.onSurface,
-              ),
-            ),
+          _CupertinoSwitchRow(
+            icon: Icons.notifications_outlined,
+            label: 'Push notifications',
             value: pushEnabled,
-            activeThumbColor: colors.primary,
             onChanged: (val) {
               ref.read(profileActionProvider.notifier).updateNotificationPrefs(
                     pushEnabled: val,
@@ -943,17 +1015,10 @@ class _PreferencesCard extends ConsumerWidget {
           const Divider(height: 1, indent: 16, endIndent: 16),
 
           // ── Email Notifications ───────────────────────────
-          SwitchListTile(
-            secondary: Icon(Icons.email_outlined, color: colors.primary),
-            title: Text(
-              'Email notifications',
-              style: GoogleFonts.inter(
-                fontSize: 15,
-                color: colors.onSurface,
-              ),
-            ),
+          _CupertinoSwitchRow(
+            icon: Icons.email_outlined,
+            label: 'Email notifications',
             value: emailEnabled,
-            activeThumbColor: colors.primary,
             onChanged: (val) {
               ref.read(profileActionProvider.notifier).updateNotificationPrefs(
                     pushEnabled: pushEnabled,
@@ -1099,14 +1164,18 @@ class _AccountActionsCard extends ConsumerWidget {
   }
 
   void _confirmSignOut(BuildContext context, WidgetRef ref) {
-    showDialog(
+    showCupertinoDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => CupertinoAlertDialog(
         title: const Text('Sign out?'),
         content: const Text('You can always sign back in later.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          FilledButton(
+          CupertinoDialogAction(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          CupertinoDialogAction(
+            isDestructiveAction: true,
             onPressed: () {
               Navigator.pop(ctx);
               ref.read(profileActionProvider.notifier).signOut();
@@ -1119,17 +1188,20 @@ class _AccountActionsCard extends ConsumerWidget {
   }
 
   void _confirmDeleteAccount(BuildContext context, WidgetRef ref) {
-    showDialog(
+    showCupertinoDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => CupertinoAlertDialog(
         title: const Text('Delete account?'),
         content: const Text(
           'This will permanently delete your account and remove you from all spaces. This cannot be undone.',
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+          CupertinoDialogAction(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          CupertinoDialogAction(
+            isDestructiveAction: true,
             onPressed: () async {
               Navigator.pop(ctx);
               try {
@@ -1147,6 +1219,169 @@ class _AccountActionsCard extends ConsumerWidget {
               }
             },
             child: const Text('Delete my account'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Space Members Sheet ──────────────────────────────────────
+
+class _SpaceMembersSheet extends ConsumerWidget {
+  const _SpaceMembersSheet({required this.space, required this.currentUserId});
+  final SpaceModel space;
+  final String currentUserId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final colors = Theme.of(context).colorScheme;
+    final memberIds = space.members.keys.toList();
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Header ─────────────────────────────────────
+          Text(
+            space.name,
+            style: GoogleFonts.nunito(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: colors.onSurface,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${memberIds.length} member${memberIds.length == 1 ? '' : 's'}',
+            style: GoogleFonts.inter(
+              fontSize: 13,
+              color: colors.onSurface.withValues(alpha: 0.5),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // ── Members list ───────────────────────────────
+          ...memberIds.map((memberId) {
+            final memberData = space.members[memberId]!;
+            final isOwner = memberData.role == 'owner';
+            final isCurrentUser = memberId == currentUserId;
+            final userAsync = ref.watch(userByIdProvider(memberId));
+
+            return userAsync.when(
+              loading: () => _memberRow(
+                context: context,
+                avatar: SizedBox(
+                  width: 40,
+                  height: 40,
+                  child: Center(
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: colors.primary,
+                      ),
+                    ),
+                  ),
+                ),
+                name: 'Loading...',
+                subtitle: isOwner ? 'Owner' : 'Member',
+                isCurrentUser: isCurrentUser,
+                moodEmoji: null,
+              ),
+              error: (_, __) => _memberRow(
+                context: context,
+                avatar: const AvatarWidget(name: 'Team member', radius: 20),
+                name: 'Team member',
+                subtitle: isOwner ? 'Owner' : 'Member',
+                isCurrentUser: isCurrentUser,
+                moodEmoji: null,
+              ),
+              data: (user) {
+                final name =
+                    (user != null && user.displayName.isNotEmpty)
+                        ? user.displayName
+                        : (user != null && user.email.isNotEmpty)
+                            ? user.email.split('@').first
+                            : 'Team member';
+                return _memberRow(
+                  context: context,
+                  avatar: AvatarWidget(
+                    name: name,
+                    imageUrl: user?.photoUrl,
+                    radius: 20,
+                  ),
+                  name: name,
+                  subtitle: isOwner ? 'Owner' : 'Member',
+                  isCurrentUser: isCurrentUser,
+                  moodEmoji: user?.moodEmoji,
+                );
+              },
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _memberRow({
+    required BuildContext context,
+    required Widget avatar,
+    required String name,
+    required String subtitle,
+    required bool isCurrentUser,
+    required String? moodEmoji,
+  }) {
+    final colors = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          avatar,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        name,
+                        style: GoogleFonts.inter(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: colors.onSurface,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (isCurrentUser)
+                      Text(
+                        ' (you)',
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          color: colors.onSurface.withValues(alpha: 0.5),
+                        ),
+                      ),
+                    if (moodEmoji != null) ...[
+                      const SizedBox(width: 6),
+                      Text(moodEmoji, style: const TextStyle(fontSize: 16)),
+                    ],
+                  ],
+                ),
+                Text(
+                  subtitle,
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    color: colors.onSurface.withValues(alpha: 0.5),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -1184,6 +1419,380 @@ class _ErrorCard extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Text(message, style: GoogleFonts.inter(color: Theme.of(context).colorScheme.error)),
+      ),
+    );
+  }
+}
+
+// ── Cupertino Switch Row ─────────────────────────────────────────
+
+class _CupertinoSwitchRow extends StatelessWidget {
+  const _CupertinoSwitchRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: Row(
+        children: [
+          Icon(icon, color: colors.primary, size: 24),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              label,
+              style: GoogleFonts.inter(
+                fontSize: 15,
+                color: colors.onSurface,
+              ),
+            ),
+          ),
+          CupertinoSwitch(
+            value: value,
+            activeTrackColor: colors.primary,
+            onChanged: onChanged,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Join Space Bottom Sheet ─────────────────────────────────────────
+class _CreateSpaceSheet extends ConsumerStatefulWidget {
+  const _CreateSpaceSheet({required this.userId});
+  final String userId;
+
+  @override
+  ConsumerState<_CreateSpaceSheet> createState() => _CreateSpaceSheetState();
+}
+
+class _CreateSpaceSheetState extends ConsumerState<_CreateSpaceSheet> {
+  final _nameController =
+      TextEditingController(text: AppConstants.defaultSpaceName);
+  final _formKey = GlobalKey<FormState>();
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _createSpace() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+    try {
+      await ref.read(spaceActionProvider.notifier).createSpace(
+            name: _nameController.text.trim(),
+            userId: widget.userId,
+          );
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Space created!')),
+        );
+      }
+    } on Exception catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to create space: $e'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 24,
+        right: 24,
+        top: 24,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: colors.onSurface.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Create a new space',
+              style: AppTextStyles.headingSmall,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'A space is where you plan life together',
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: colors.onSurface.withValues(alpha: 0.6),
+              ),
+            ),
+            const SizedBox(height: 24),
+            TextFormField(
+              controller: _nameController,
+              decoration: InputDecoration(
+                labelText: 'Space name',
+                labelStyle: AppTextStyles.bodyMedium.copyWith(
+                  color: colors.onSurface.withValues(alpha: 0.6),
+                ),
+                filled: true,
+                fillColor: colors.primaryContainer.withValues(alpha: 0.3),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: colors.primary, width: 1.5),
+                ),
+                errorBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: colors.error),
+                ),
+                focusedErrorBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: colors.error, width: 1.5),
+                ),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              ),
+              textCapitalization: TextCapitalization.words,
+              textInputAction: TextInputAction.done,
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Please enter a space name';
+                }
+                return null;
+              },
+              onFieldSubmitted: (_) => _createSpace(),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: FilledButton(
+                onPressed: _isLoading ? null : _createSpace,
+                style: FilledButton.styleFrom(
+                  backgroundColor: colors.primary,
+                  foregroundColor: colors.onPrimary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                child: _isLoading
+                    ? SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: colors.onPrimary,
+                        ),
+                      )
+                    : Text(
+                        'Create Space',
+                        style: AppTextStyles.button.copyWith(fontSize: 16),
+                      ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _JoinSpaceSheet extends ConsumerStatefulWidget {
+  const _JoinSpaceSheet({required this.userId});
+  final String userId;
+
+  @override
+  ConsumerState<_JoinSpaceSheet> createState() => _JoinSpaceSheetState();
+}
+
+class _JoinSpaceSheetState extends ConsumerState<_JoinSpaceSheet> {
+  final _inviteCodeController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _inviteCodeController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _joinSpace() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+    try {
+      await ref.read(spaceActionProvider.notifier).joinSpace(
+            inviteCode: _inviteCodeController.text.trim(),
+            userId: widget.userId,
+          );
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Successfully joined the space!')),
+        );
+      }
+    } on SpaceNotFoundException {
+      _showError('No space found with that invite code');
+    } on AlreadyMemberException {
+      _showError('You are already a member of this space');
+    } on Exception catch (e) {
+      _showError(e.toString());
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _showError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Theme.of(context).colorScheme.error,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 24,
+        right: 24,
+        top: 24,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Drag handle
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: colors.onSurface.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Join a space',
+              style: AppTextStyles.headingSmall,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Enter the invite code from your partner',
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: colors.onSurface.withValues(alpha: 0.6),
+              ),
+            ),
+            const SizedBox(height: 24),
+            TextFormField(
+              controller: _inviteCodeController,
+              decoration: InputDecoration(
+                labelText: 'Invite code',
+                labelStyle: AppTextStyles.bodyMedium.copyWith(
+                  color: colors.onSurface.withValues(alpha: 0.6),
+                ),
+                filled: true,
+                fillColor: colors.primaryContainer.withValues(alpha: 0.3),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: colors.primary, width: 1.5),
+                ),
+                errorBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: colors.error),
+                ),
+                focusedErrorBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: colors.error, width: 1.5),
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              ),
+              textCapitalization: TextCapitalization.characters,
+              textInputAction: TextInputAction.done,
+              style: AppTextStyles.headingSmall.copyWith(letterSpacing: 4),
+              textAlign: TextAlign.center,
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Please enter an invite code';
+                }
+                if (value.trim().length != AppConstants.inviteCodeLength) {
+                  return 'Invite code must be ${AppConstants.inviteCodeLength} characters';
+                }
+                return null;
+              },
+              onFieldSubmitted: (_) => _joinSpace(),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: FilledButton(
+                onPressed: _isLoading ? null : _joinSpace,
+                style: FilledButton.styleFrom(
+                  backgroundColor: colors.primary,
+                  foregroundColor: colors.onPrimary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                child: _isLoading
+                    ? SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: colors.onPrimary,
+                        ),
+                      )
+                    : Text(
+                        'Join Space',
+                        style: AppTextStyles.button.copyWith(fontSize: 16),
+                      ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

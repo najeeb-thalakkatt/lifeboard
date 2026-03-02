@@ -171,7 +171,7 @@ void main() {
       await tester.pumpWidget(_buildTestApp(tasks: []));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('Nothing here yet'), findsOneWidget);
+      expect(find.textContaining('Nothing here yet'), findsNWidgets(3));
     });
 
     testWidgets('shows Add task buttons (wide layout)', (tester) async {

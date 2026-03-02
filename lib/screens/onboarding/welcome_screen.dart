@@ -11,8 +11,8 @@ class WelcomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? AppColors.darkPrimaryContainer : AppColors.background;
+    final ext = Theme.of(context).extension<AppColorsExtension>()!;
+    final bgColor = ext.scaffold;
     // On the branded splash, text/icons sit on the teal/dark background
     const onBgColor = Colors.white;
 
@@ -28,7 +28,7 @@ class WelcomeScreen extends StatelessWidget {
 
               // Logo
               Image.asset(
-                'assets/images/logo.png',
+                'assets/images/app_icon.png',
                 width: 160,
                 height: 160,
                 errorBuilder: (_, __, ___) => Icon(
@@ -67,7 +67,7 @@ class WelcomeScreen extends StatelessWidget {
                 child: FilledButton(
                   onPressed: () => context.go('/auth?mode=signup'),
                   style: FilledButton.styleFrom(
-                    backgroundColor: isDark ? AppColors.darkPrimary : AppColors.primaryDark,
+                    backgroundColor: Theme.of(context).colorScheme.primary,
                     foregroundColor: onBgColor,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),

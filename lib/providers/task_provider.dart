@@ -2,11 +2,16 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:lifeboard/models/task_model.dart';
+import 'package:lifeboard/providers/auth_provider.dart';
 import 'package:lifeboard/providers/space_provider.dart';
 
 /// Streams tasks for a specific (spaceId, boardId) pair.
 final boardTasksProvider = StreamProvider.family<List<TaskModel>,
     ({String spaceId, String boardId})>((ref, params) {
+  // Watch auth state so this provider resets on login/logout.
+  final authState = ref.watch(authStateProvider);
+  if (authState.valueOrNull == null) return const Stream.empty();
+
   final firestoreService = ref.watch(firestoreServiceProvider);
   return firestoreService.getTasksForBoard(params.spaceId, params.boardId);
 });

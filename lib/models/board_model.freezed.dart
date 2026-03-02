@@ -15,7 +15,8 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$BoardModel {
 
- String get id; String get name; String get theme; List<String> get columns; String get createdBy; DateTime get createdAt;
+ String get id; String get name; String get theme; List<String> get columns;/// WIP limits per column status. Null or absent means no limit.
+ Map<String, int> get wipLimits; String get createdBy; DateTime get createdAt;
 /// Create a copy of BoardModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +29,16 @@ $BoardModelCopyWith<BoardModel> get copyWith => _$BoardModelCopyWithImpl<BoardMo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is BoardModel&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.theme, theme) || other.theme == theme)&&const DeepCollectionEquality().equals(other.columns, columns)&&(identical(other.createdBy, createdBy) || other.createdBy == createdBy)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is BoardModel&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.theme, theme) || other.theme == theme)&&const DeepCollectionEquality().equals(other.columns, columns)&&const DeepCollectionEquality().equals(other.wipLimits, wipLimits)&&(identical(other.createdBy, createdBy) || other.createdBy == createdBy)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,theme,const DeepCollectionEquality().hash(columns),createdBy,createdAt);
+int get hashCode => Object.hash(runtimeType,id,name,theme,const DeepCollectionEquality().hash(columns),const DeepCollectionEquality().hash(wipLimits),createdBy,createdAt);
 
 @override
 String toString() {
-  return 'BoardModel(id: $id, name: $name, theme: $theme, columns: $columns, createdBy: $createdBy, createdAt: $createdAt)';
+  return 'BoardModel(id: $id, name: $name, theme: $theme, columns: $columns, wipLimits: $wipLimits, createdBy: $createdBy, createdAt: $createdAt)';
 }
 
 
@@ -48,7 +49,7 @@ abstract mixin class $BoardModelCopyWith<$Res>  {
   factory $BoardModelCopyWith(BoardModel value, $Res Function(BoardModel) _then) = _$BoardModelCopyWithImpl;
 @useResult
 $Res call({
- String id, String name, String theme, List<String> columns, String createdBy, DateTime createdAt
+ String id, String name, String theme, List<String> columns, Map<String, int> wipLimits, String createdBy, DateTime createdAt
 });
 
 
@@ -65,13 +66,14 @@ class _$BoardModelCopyWithImpl<$Res>
 
 /// Create a copy of BoardModel
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? theme = null,Object? columns = null,Object? createdBy = null,Object? createdAt = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? theme = null,Object? columns = null,Object? wipLimits = null,Object? createdBy = null,Object? createdAt = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,theme: null == theme ? _self.theme : theme // ignore: cast_nullable_to_non_nullable
 as String,columns: null == columns ? _self.columns : columns // ignore: cast_nullable_to_non_nullable
-as List<String>,createdBy: null == createdBy ? _self.createdBy : createdBy // ignore: cast_nullable_to_non_nullable
+as List<String>,wipLimits: null == wipLimits ? _self.wipLimits : wipLimits // ignore: cast_nullable_to_non_nullable
+as Map<String, int>,createdBy: null == createdBy ? _self.createdBy : createdBy // ignore: cast_nullable_to_non_nullable
 as String,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,
   ));
@@ -158,10 +160,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String theme,  List<String> columns,  String createdBy,  DateTime createdAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String theme,  List<String> columns,  Map<String, int> wipLimits,  String createdBy,  DateTime createdAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _BoardModel() when $default != null:
-return $default(_that.id,_that.name,_that.theme,_that.columns,_that.createdBy,_that.createdAt);case _:
+return $default(_that.id,_that.name,_that.theme,_that.columns,_that.wipLimits,_that.createdBy,_that.createdAt);case _:
   return orElse();
 
 }
@@ -179,10 +181,10 @@ return $default(_that.id,_that.name,_that.theme,_that.columns,_that.createdBy,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String theme,  List<String> columns,  String createdBy,  DateTime createdAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String theme,  List<String> columns,  Map<String, int> wipLimits,  String createdBy,  DateTime createdAt)  $default,) {final _that = this;
 switch (_that) {
 case _BoardModel():
-return $default(_that.id,_that.name,_that.theme,_that.columns,_that.createdBy,_that.createdAt);case _:
+return $default(_that.id,_that.name,_that.theme,_that.columns,_that.wipLimits,_that.createdBy,_that.createdAt);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -199,10 +201,10 @@ return $default(_that.id,_that.name,_that.theme,_that.columns,_that.createdBy,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String theme,  List<String> columns,  String createdBy,  DateTime createdAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String theme,  List<String> columns,  Map<String, int> wipLimits,  String createdBy,  DateTime createdAt)?  $default,) {final _that = this;
 switch (_that) {
 case _BoardModel() when $default != null:
-return $default(_that.id,_that.name,_that.theme,_that.columns,_that.createdBy,_that.createdAt);case _:
+return $default(_that.id,_that.name,_that.theme,_that.columns,_that.wipLimits,_that.createdBy,_that.createdAt);case _:
   return null;
 
 }
@@ -214,7 +216,7 @@ return $default(_that.id,_that.name,_that.theme,_that.columns,_that.createdBy,_t
 @JsonSerializable()
 
 class _BoardModel implements BoardModel {
-  const _BoardModel({required this.id, required this.name, this.theme = '', final  List<String> columns = const ['todo', 'in_progress', 'done'], required this.createdBy, required this.createdAt}): _columns = columns;
+  const _BoardModel({required this.id, required this.name, this.theme = '', final  List<String> columns = const ['todo', 'in_progress', 'done'], final  Map<String, int> wipLimits = const {}, required this.createdBy, required this.createdAt}): _columns = columns,_wipLimits = wipLimits;
   factory _BoardModel.fromJson(Map<String, dynamic> json) => _$BoardModelFromJson(json);
 
 @override final  String id;
@@ -225,6 +227,15 @@ class _BoardModel implements BoardModel {
   if (_columns is EqualUnmodifiableListView) return _columns;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_columns);
+}
+
+/// WIP limits per column status. Null or absent means no limit.
+ final  Map<String, int> _wipLimits;
+/// WIP limits per column status. Null or absent means no limit.
+@override@JsonKey() Map<String, int> get wipLimits {
+  if (_wipLimits is EqualUnmodifiableMapView) return _wipLimits;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(_wipLimits);
 }
 
 @override final  String createdBy;
@@ -243,16 +254,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _BoardModel&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.theme, theme) || other.theme == theme)&&const DeepCollectionEquality().equals(other._columns, _columns)&&(identical(other.createdBy, createdBy) || other.createdBy == createdBy)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _BoardModel&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.theme, theme) || other.theme == theme)&&const DeepCollectionEquality().equals(other._columns, _columns)&&const DeepCollectionEquality().equals(other._wipLimits, _wipLimits)&&(identical(other.createdBy, createdBy) || other.createdBy == createdBy)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,theme,const DeepCollectionEquality().hash(_columns),createdBy,createdAt);
+int get hashCode => Object.hash(runtimeType,id,name,theme,const DeepCollectionEquality().hash(_columns),const DeepCollectionEquality().hash(_wipLimits),createdBy,createdAt);
 
 @override
 String toString() {
-  return 'BoardModel(id: $id, name: $name, theme: $theme, columns: $columns, createdBy: $createdBy, createdAt: $createdAt)';
+  return 'BoardModel(id: $id, name: $name, theme: $theme, columns: $columns, wipLimits: $wipLimits, createdBy: $createdBy, createdAt: $createdAt)';
 }
 
 
@@ -263,7 +274,7 @@ abstract mixin class _$BoardModelCopyWith<$Res> implements $BoardModelCopyWith<$
   factory _$BoardModelCopyWith(_BoardModel value, $Res Function(_BoardModel) _then) = __$BoardModelCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, String theme, List<String> columns, String createdBy, DateTime createdAt
+ String id, String name, String theme, List<String> columns, Map<String, int> wipLimits, String createdBy, DateTime createdAt
 });
 
 
@@ -280,13 +291,14 @@ class __$BoardModelCopyWithImpl<$Res>
 
 /// Create a copy of BoardModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? theme = null,Object? columns = null,Object? createdBy = null,Object? createdAt = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? theme = null,Object? columns = null,Object? wipLimits = null,Object? createdBy = null,Object? createdAt = null,}) {
   return _then(_BoardModel(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,theme: null == theme ? _self.theme : theme // ignore: cast_nullable_to_non_nullable
 as String,columns: null == columns ? _self._columns : columns // ignore: cast_nullable_to_non_nullable
-as List<String>,createdBy: null == createdBy ? _self.createdBy : createdBy // ignore: cast_nullable_to_non_nullable
+as List<String>,wipLimits: null == wipLimits ? _self._wipLimits : wipLimits // ignore: cast_nullable_to_non_nullable
+as Map<String, int>,createdBy: null == createdBy ? _self.createdBy : createdBy // ignore: cast_nullable_to_non_nullable
 as String,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,
   ));

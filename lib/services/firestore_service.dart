@@ -65,16 +65,12 @@ class FirestoreService {
       createdAt: now,
     );
 
-    // Generate doc ID locally (no network call), then set without awaiting
-    // server acknowledgment. The Firestore SDK will sync in the background.
     final docRef = _spacesRef.doc();
-    debugPrint('[FirestoreService] created local doc ref: ${docRef.id}');
-    docRef.set(SpaceModel.toFirestore(space));
-    debugPrint('[FirestoreService] set() called (non-blocking), id: ${docRef.id}');
+    await docRef.set(SpaceModel.toFirestore(space));
 
-    // Add space ID to the user's spaceIds array (non-blocking — the space
-    // query uses members.$userId.role, not spaceIds, so this is supplementary).
-    _usersRef.doc(userId).set({
+    // Add space ID to the user's spaceIds array (supplementary — the space
+    // query uses members.$userId.role, not spaceIds).
+    await _usersRef.doc(userId).set({
       'spaceIds': FieldValue.arrayUnion([docRef.id]),
     }, SetOptions(merge: true));
 
@@ -113,8 +109,7 @@ class FirestoreService {
       },
     });
 
-    // Add space ID to the user's spaceIds array (non-blocking).
-    _usersRef.doc(userId).set({
+    await _usersRef.doc(userId).set({
       'spaceIds': FieldValue.arrayUnion([doc.id]),
     }, SetOptions(merge: true));
 
@@ -171,7 +166,7 @@ class FirestoreService {
     );
 
     final docRef = _boardsRef(spaceId).doc();
-    unawaited(docRef.set(BoardModel.toFirestore(board)));
+    await docRef.set(BoardModel.toFirestore(board));
     return board.copyWith(id: docRef.id);
   }
 
@@ -205,7 +200,7 @@ class FirestoreService {
     required TaskModel task,
   }) async {
     final docRef = _tasksRef(spaceId).doc();
-    unawaited(docRef.set(TaskModel.toFirestore(task)));
+    await docRef.set(TaskModel.toFirestore(task));
     return task.copyWith(id: docRef.id);
   }
 
@@ -227,7 +222,19 @@ class FirestoreService {
     await _tasksRef(spaceId).doc(taskId).delete();
   }
 
+  /// Streams a single task by spaceId and taskId.
+  Stream<TaskModel?> streamTask({
+    required String spaceId,
+    required String taskId,
+  }) {
+    return _tasksRef(spaceId)
+        .doc(taskId)
+        .snapshots()
+        .map((doc) => doc.exists ? TaskModel.fromFirestore(doc) : null);
+  }
+
   /// Streams tasks for a specific board, ordered by [order].
+  /// Excludes archived tasks (those with archivedAt set).
   Stream<List<TaskModel>> getTasksForBoard(String spaceId, String boardId) {
     return _tasksRef(spaceId)
         .where('boardId', isEqualTo: boardId)
@@ -235,6 +242,7 @@ class FirestoreService {
         .snapshots()
         .map((snapshot) => snapshot.docs
             .map(TaskModel.fromFirestore)
+            .where((task) => task.archivedAt == null)
             .toList());
   }
 
@@ -284,6 +292,46 @@ class FirestoreService {
     await batch.commit();
   }
 
+  /// Archives all completed tasks for a board.
+  Future<int> archiveCompletedTasks({
+    required String spaceId,
+    required String boardId,
+  }) async {
+    final snapshot = await _tasksRef(spaceId)
+        .where('boardId', isEqualTo: boardId)
+        .where('status', isEqualTo: 'done')
+        .get();
+
+    final now = Timestamp.fromDate(DateTime.now());
+    final batch = _firestore.batch();
+    var count = 0;
+
+    for (final doc in snapshot.docs) {
+      final data = doc.data();
+      // Skip already-archived tasks
+      if (data['archivedAt'] != null) continue;
+      batch.update(doc.reference, {
+        'archivedAt': now,
+        'updatedAt': now,
+      });
+      count++;
+    }
+
+    if (count > 0) await batch.commit();
+    return count;
+  }
+
+  /// Updates WIP limits on a board document.
+  Future<void> updateBoardWipLimits({
+    required String spaceId,
+    required String boardId,
+    required Map<String, int> wipLimits,
+  }) async {
+    await _boardsRef(spaceId).doc(boardId).update({
+      'wipLimits': wipLimits,
+    });
+  }
+
   // ── Comment CRUD ────────────────────────────────────────────
 
   /// Adds a comment to a task's comments subcollection.
@@ -301,7 +349,7 @@ class FirestoreService {
       createdAt: now,
     );
     final docRef = _commentsRef(spaceId, taskId).doc();
-    unawaited(docRef.set(CommentModel.toFirestore(comment)));
+    await docRef.set(CommentModel.toFirestore(comment));
     return comment.copyWith(id: docRef.id);
   }
 
@@ -385,16 +433,24 @@ class FirestoreService {
     final member = space.members[userId];
     if (member == null) return;
 
+    final otherMembers = space.members.entries
+        .where((e) => e.key != userId)
+        .toList();
+
+    // If this is the last member, delete the space entirely
+    if (otherMembers.isEmpty) {
+      await _spacesRef.doc(spaceId).delete();
+      await _usersRef.doc(userId).update({
+        'spaceIds': FieldValue.arrayRemove([spaceId]),
+      });
+      return;
+    }
+
     // If owner and others exist, transfer ownership to the first member
     if (member.role == 'owner') {
-      final otherMembers = space.members.entries
-          .where((e) => e.key != userId)
-          .toList();
-      if (otherMembers.isNotEmpty) {
-        await _spacesRef.doc(spaceId).update({
-          'members.${otherMembers.first.key}.role': 'owner',
-        });
-      }
+      await _spacesRef.doc(spaceId).update({
+        'members.${otherMembers.first.key}.role': 'owner',
+      });
     }
 
     // Remove user from space members
@@ -435,25 +491,28 @@ class FirestoreService {
 
   /// Returns the total count of completed tasks across all the user's spaces.
   Future<int> getCompletedTaskCount(List<String> spaceIds) async {
-    int total = 0;
-    for (final spaceId in spaceIds) {
-      final snapshot = await _tasksRef(spaceId)
+    final futures = spaceIds.map((spaceId) =>
+      _tasksRef(spaceId)
           .where('status', isEqualTo: 'done')
           .count()
-          .get();
-      total += snapshot.count ?? 0;
-    }
-    return total;
+          .get(),
+    );
+    final results = await Future.wait(futures);
+    return results.fold<int>(0, (sum, snap) => sum + (snap.count ?? 0));
   }
 
   /// Returns completed tasks grouped by week (weekStart = Monday 00:00 UTC)
   /// for streak calculation. Returns dates of weeks with at least 1 completion.
   Future<List<DateTime>> getCompletionWeeks(List<String> spaceIds) async {
-    final Set<String> weekKeys = {};
-    for (final spaceId in spaceIds) {
-      final snapshot = await _tasksRef(spaceId)
+    final futures = spaceIds.map((spaceId) =>
+      _tasksRef(spaceId)
           .where('status', isEqualTo: 'done')
-          .get();
+          .get(),
+    );
+    final results = await Future.wait(futures);
+
+    final Set<String> weekKeys = {};
+    for (final snapshot in results) {
       for (final doc in snapshot.docs) {
         final completedAt = (doc.data()['completedAt'] as Timestamp?)?.toDate();
         if (completedAt != null) {

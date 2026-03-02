@@ -26,9 +26,8 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor =
-        isDark ? AppColors.darkPrimaryContainer : AppColors.background;
+    final ext = Theme.of(context).extension<AppColorsExtension>()!;
+    final bgColor = ext.scaffold;
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -43,22 +42,22 @@ class _SplashScreenState extends State<SplashScreen> {
             ),
             const SizedBox(height: 32),
             Text(
-              'LIFE BOARD',
+              'Lifeboard',
               style: GoogleFonts.nunito(
                 fontSize: 36,
                 fontWeight: FontWeight.w700,
                 color: Colors.white,
-                letterSpacing: 8,
+                letterSpacing: 2,
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              'LIFE PLANNER',
+              'Plan life together, simply.',
               style: GoogleFonts.nunito(
                 fontSize: 16,
                 fontWeight: FontWeight.w400,
-                color: Colors.white.withOpacity(0.85),
-                letterSpacing: 6,
+                color: Colors.white.withValues(alpha: 0.85),
+                letterSpacing: 1,
               ),
             ),
           ],

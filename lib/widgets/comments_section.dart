@@ -105,7 +105,7 @@ class _CommentsSectionState extends ConsumerState<CommentsSection> {
             ),
           ),
           data: (comments) {
-            final isDark = Theme.of(context).brightness == Brightness.dark;
+            final ext = Theme.of(context).extension<AppColorsExtension>()!;
             if (comments.isEmpty) {
               return Container(
                 width: double.infinity,
@@ -114,7 +114,7 @@ class _CommentsSectionState extends ConsumerState<CommentsSection> {
                   color: colors.primaryContainer.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: isDark ? AppColors.darkDivider : AppColors.divider,
+                    color: ext.divider,
                   ),
                 ),
                 child: Center(
@@ -267,8 +267,7 @@ class _ReactionBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final dividerColor = isDark ? AppColors.darkDivider : AppColors.divider;
+    final ext = Theme.of(context).extension<AppColorsExtension>()!;
 
     return Wrap(
       spacing: 6,
@@ -292,7 +291,7 @@ class _ReactionBar extends StatelessWidget {
                 border: Border.all(
                   color: iReacted
                       ? colors.primary.withValues(alpha: 0.4)
-                      : dividerColor,
+                      : ext.divider,
                 ),
               ),
               child: Row(
@@ -338,7 +337,7 @@ class _AddReactionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final ext = Theme.of(context).extension<AppColorsExtension>()!;
     return GestureDetector(
       onTap: () => _showReactionPicker(context),
       behavior: HitTestBehavior.opaque,
@@ -348,7 +347,7 @@ class _AddReactionButton extends StatelessWidget {
           color: colors.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isDark ? AppColors.darkDivider : AppColors.divider,
+            color: ext.divider,
           ),
         ),
         child: Icon(
@@ -414,14 +413,14 @@ class _CommentInput extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final ext = Theme.of(context).extension<AppColorsExtension>()!;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 4),
       decoration: BoxDecoration(
         color: colors.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isDark ? AppColors.darkDivider : AppColors.divider,
+          color: ext.divider,
         ),
       ),
       child: Row(

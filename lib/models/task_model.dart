@@ -48,6 +48,14 @@ abstract class TaskModel with _$TaskModel {
     DateTime? weekStart,
     @Default(0) int order,
     DateTime? completedAt,
+    /// When non-null, the task is archived and hidden from the board.
+    DateTime? archivedAt,
+    /// Whether this task is blocked.
+    @Default(false) bool isBlocked,
+    /// Reason why the task is blocked.
+    String? blockedReason,
+    /// Recurrence rule: 'never' | 'daily' | 'weekly' | 'biweekly' | 'monthly'
+    @Default('never') String recurrenceRule,
     required String createdBy,
     required DateTime createdAt,
     required DateTime updatedAt,
@@ -80,6 +88,10 @@ abstract class TaskModel with _$TaskModel {
       weekStart: (data['weekStart'] as Timestamp?)?.toDate(),
       order: data['order'] as int? ?? 0,
       completedAt: (data['completedAt'] as Timestamp?)?.toDate(),
+      archivedAt: (data['archivedAt'] as Timestamp?)?.toDate(),
+      isBlocked: data['isBlocked'] as bool? ?? false,
+      blockedReason: data['blockedReason'] as String?,
+      recurrenceRule: data['recurrenceRule'] as String? ?? 'never',
       createdBy: data['createdBy'] as String? ?? '',
       createdAt:
           (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
@@ -113,6 +125,12 @@ abstract class TaskModel with _$TaskModel {
       'completedAt': model.completedAt != null
           ? Timestamp.fromDate(model.completedAt!)
           : null,
+      'archivedAt': model.archivedAt != null
+          ? Timestamp.fromDate(model.archivedAt!)
+          : null,
+      'isBlocked': model.isBlocked,
+      'blockedReason': model.blockedReason,
+      'recurrenceRule': model.recurrenceRule,
       'createdBy': model.createdBy,
       'createdAt': Timestamp.fromDate(model.createdAt),
       'updatedAt': Timestamp.fromDate(model.updatedAt),

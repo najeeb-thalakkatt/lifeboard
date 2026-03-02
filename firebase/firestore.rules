@@ -33,8 +33,10 @@ service cloud.firestore {
     // ── Users ─────────────────────────────────────────────────
 
     match /users/{userId} {
-      // Users can only read/write their own document.
-      allow read: if isAuthenticated() && request.auth.uid == userId;
+      // Any authenticated user can read user profiles (needed for showing
+      // partner names/photos in shared spaces). User docs contain only
+      // displayName, email, photoUrl, moodEmoji, spaceIds — nothing sensitive.
+      allow read: if isAuthenticated();
       allow create: if isAuthenticated() && request.auth.uid == userId;
       allow update: if isAuthenticated() && request.auth.uid == userId;
       allow delete: if false; // No self-deletion via client
@@ -43,7 +45,12 @@ service cloud.firestore {
     // ── Spaces ────────────────────────────────────────────────
 
     match /spaces/{spaceId} {
-      // Any authenticated user can read spaces (needed for invite code lookup).
+      // Any authenticated user can read spaces.
+      // NOTE: This is required because joinSpace() queries by inviteCode, which
+      // needs read access to non-member spaces. Firestore rules cannot inspect
+      // query where-clauses. To fully restrict, move invite-code lookup to a
+      // Cloud Function. Low-risk for this app: exposed data is space name,
+      // member IDs, and invite code.
       allow read: if isAuthenticated();
 
       // Any authenticated user can create a space (they become the owner).
@@ -81,8 +88,10 @@ service cloud.firestore {
             request.auth.uid in get(/databases/$(database)/documents/spaces/$(spaceId)).data.members;
           allow create: if isAuthenticated() &&
             request.auth.uid in get(/databases/$(database)/documents/spaces/$(spaceId)).data.members;
+          // Only the comment author can update or delete their own comments.
           allow update, delete: if isAuthenticated() &&
-            request.auth.uid in get(/databases/$(database)/documents/spaces/$(spaceId)).data.members;
+            request.auth.uid in get(/databases/$(database)/documents/spaces/$(spaceId)).data.members &&
+            resource.data.authorId == request.auth.uid;
         }
       }
 

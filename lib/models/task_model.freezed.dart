@@ -554,7 +554,11 @@ as String,
 mixin _$TaskModel {
 
  String get id; String get title; String? get description; String get status;// 'todo' | 'in_progress' | 'done'
- String get boardId; List<String> get assignees; DateTime? get dueDate; String? get emojiTag; List<Subtask> get subtasks; List<Attachment> get attachments; bool get isWeeklyTask; DateTime? get weekStart; int get order; DateTime? get completedAt; String get createdBy; DateTime get createdAt; DateTime get updatedAt;
+ String get boardId; List<String> get assignees; DateTime? get dueDate; String? get emojiTag; List<Subtask> get subtasks; List<Attachment> get attachments; bool get isWeeklyTask; DateTime? get weekStart; int get order; DateTime? get completedAt;/// When non-null, the task is archived and hidden from the board.
+ DateTime? get archivedAt;/// Whether this task is blocked.
+ bool get isBlocked;/// Reason why the task is blocked.
+ String? get blockedReason;/// Recurrence rule: 'never' | 'daily' | 'weekly' | 'biweekly' | 'monthly'
+ String get recurrenceRule; String get createdBy; DateTime get createdAt; DateTime get updatedAt;
 /// Create a copy of TaskModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -567,16 +571,16 @@ $TaskModelCopyWith<TaskModel> get copyWith => _$TaskModelCopyWithImpl<TaskModel>
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is TaskModel&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&(identical(other.status, status) || other.status == status)&&(identical(other.boardId, boardId) || other.boardId == boardId)&&const DeepCollectionEquality().equals(other.assignees, assignees)&&(identical(other.dueDate, dueDate) || other.dueDate == dueDate)&&(identical(other.emojiTag, emojiTag) || other.emojiTag == emojiTag)&&const DeepCollectionEquality().equals(other.subtasks, subtasks)&&const DeepCollectionEquality().equals(other.attachments, attachments)&&(identical(other.isWeeklyTask, isWeeklyTask) || other.isWeeklyTask == isWeeklyTask)&&(identical(other.weekStart, weekStart) || other.weekStart == weekStart)&&(identical(other.order, order) || other.order == order)&&(identical(other.completedAt, completedAt) || other.completedAt == completedAt)&&(identical(other.createdBy, createdBy) || other.createdBy == createdBy)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is TaskModel&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&(identical(other.status, status) || other.status == status)&&(identical(other.boardId, boardId) || other.boardId == boardId)&&const DeepCollectionEquality().equals(other.assignees, assignees)&&(identical(other.dueDate, dueDate) || other.dueDate == dueDate)&&(identical(other.emojiTag, emojiTag) || other.emojiTag == emojiTag)&&const DeepCollectionEquality().equals(other.subtasks, subtasks)&&const DeepCollectionEquality().equals(other.attachments, attachments)&&(identical(other.isWeeklyTask, isWeeklyTask) || other.isWeeklyTask == isWeeklyTask)&&(identical(other.weekStart, weekStart) || other.weekStart == weekStart)&&(identical(other.order, order) || other.order == order)&&(identical(other.completedAt, completedAt) || other.completedAt == completedAt)&&(identical(other.archivedAt, archivedAt) || other.archivedAt == archivedAt)&&(identical(other.isBlocked, isBlocked) || other.isBlocked == isBlocked)&&(identical(other.blockedReason, blockedReason) || other.blockedReason == blockedReason)&&(identical(other.recurrenceRule, recurrenceRule) || other.recurrenceRule == recurrenceRule)&&(identical(other.createdBy, createdBy) || other.createdBy == createdBy)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,title,description,status,boardId,const DeepCollectionEquality().hash(assignees),dueDate,emojiTag,const DeepCollectionEquality().hash(subtasks),const DeepCollectionEquality().hash(attachments),isWeeklyTask,weekStart,order,completedAt,createdBy,createdAt,updatedAt);
+int get hashCode => Object.hashAll([runtimeType,id,title,description,status,boardId,const DeepCollectionEquality().hash(assignees),dueDate,emojiTag,const DeepCollectionEquality().hash(subtasks),const DeepCollectionEquality().hash(attachments),isWeeklyTask,weekStart,order,completedAt,archivedAt,isBlocked,blockedReason,recurrenceRule,createdBy,createdAt,updatedAt]);
 
 @override
 String toString() {
-  return 'TaskModel(id: $id, title: $title, description: $description, status: $status, boardId: $boardId, assignees: $assignees, dueDate: $dueDate, emojiTag: $emojiTag, subtasks: $subtasks, attachments: $attachments, isWeeklyTask: $isWeeklyTask, weekStart: $weekStart, order: $order, completedAt: $completedAt, createdBy: $createdBy, createdAt: $createdAt, updatedAt: $updatedAt)';
+  return 'TaskModel(id: $id, title: $title, description: $description, status: $status, boardId: $boardId, assignees: $assignees, dueDate: $dueDate, emojiTag: $emojiTag, subtasks: $subtasks, attachments: $attachments, isWeeklyTask: $isWeeklyTask, weekStart: $weekStart, order: $order, completedAt: $completedAt, archivedAt: $archivedAt, isBlocked: $isBlocked, blockedReason: $blockedReason, recurrenceRule: $recurrenceRule, createdBy: $createdBy, createdAt: $createdAt, updatedAt: $updatedAt)';
 }
 
 
@@ -587,7 +591,7 @@ abstract mixin class $TaskModelCopyWith<$Res>  {
   factory $TaskModelCopyWith(TaskModel value, $Res Function(TaskModel) _then) = _$TaskModelCopyWithImpl;
 @useResult
 $Res call({
- String id, String title, String? description, String status, String boardId, List<String> assignees, DateTime? dueDate, String? emojiTag, List<Subtask> subtasks, List<Attachment> attachments, bool isWeeklyTask, DateTime? weekStart, int order, DateTime? completedAt, String createdBy, DateTime createdAt, DateTime updatedAt
+ String id, String title, String? description, String status, String boardId, List<String> assignees, DateTime? dueDate, String? emojiTag, List<Subtask> subtasks, List<Attachment> attachments, bool isWeeklyTask, DateTime? weekStart, int order, DateTime? completedAt, DateTime? archivedAt, bool isBlocked, String? blockedReason, String recurrenceRule, String createdBy, DateTime createdAt, DateTime updatedAt
 });
 
 
@@ -604,7 +608,7 @@ class _$TaskModelCopyWithImpl<$Res>
 
 /// Create a copy of TaskModel
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? title = null,Object? description = freezed,Object? status = null,Object? boardId = null,Object? assignees = null,Object? dueDate = freezed,Object? emojiTag = freezed,Object? subtasks = null,Object? attachments = null,Object? isWeeklyTask = null,Object? weekStart = freezed,Object? order = null,Object? completedAt = freezed,Object? createdBy = null,Object? createdAt = null,Object? updatedAt = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? title = null,Object? description = freezed,Object? status = null,Object? boardId = null,Object? assignees = null,Object? dueDate = freezed,Object? emojiTag = freezed,Object? subtasks = null,Object? attachments = null,Object? isWeeklyTask = null,Object? weekStart = freezed,Object? order = null,Object? completedAt = freezed,Object? archivedAt = freezed,Object? isBlocked = null,Object? blockedReason = freezed,Object? recurrenceRule = null,Object? createdBy = null,Object? createdAt = null,Object? updatedAt = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
@@ -620,7 +624,11 @@ as List<Attachment>,isWeeklyTask: null == isWeeklyTask ? _self.isWeeklyTask : is
 as bool,weekStart: freezed == weekStart ? _self.weekStart : weekStart // ignore: cast_nullable_to_non_nullable
 as DateTime?,order: null == order ? _self.order : order // ignore: cast_nullable_to_non_nullable
 as int,completedAt: freezed == completedAt ? _self.completedAt : completedAt // ignore: cast_nullable_to_non_nullable
-as DateTime?,createdBy: null == createdBy ? _self.createdBy : createdBy // ignore: cast_nullable_to_non_nullable
+as DateTime?,archivedAt: freezed == archivedAt ? _self.archivedAt : archivedAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,isBlocked: null == isBlocked ? _self.isBlocked : isBlocked // ignore: cast_nullable_to_non_nullable
+as bool,blockedReason: freezed == blockedReason ? _self.blockedReason : blockedReason // ignore: cast_nullable_to_non_nullable
+as String?,recurrenceRule: null == recurrenceRule ? _self.recurrenceRule : recurrenceRule // ignore: cast_nullable_to_non_nullable
+as String,createdBy: null == createdBy ? _self.createdBy : createdBy // ignore: cast_nullable_to_non_nullable
 as String,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,updatedAt: null == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
 as DateTime,
@@ -708,10 +716,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String title,  String? description,  String status,  String boardId,  List<String> assignees,  DateTime? dueDate,  String? emojiTag,  List<Subtask> subtasks,  List<Attachment> attachments,  bool isWeeklyTask,  DateTime? weekStart,  int order,  DateTime? completedAt,  String createdBy,  DateTime createdAt,  DateTime updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String title,  String? description,  String status,  String boardId,  List<String> assignees,  DateTime? dueDate,  String? emojiTag,  List<Subtask> subtasks,  List<Attachment> attachments,  bool isWeeklyTask,  DateTime? weekStart,  int order,  DateTime? completedAt,  DateTime? archivedAt,  bool isBlocked,  String? blockedReason,  String recurrenceRule,  String createdBy,  DateTime createdAt,  DateTime updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _TaskModel() when $default != null:
-return $default(_that.id,_that.title,_that.description,_that.status,_that.boardId,_that.assignees,_that.dueDate,_that.emojiTag,_that.subtasks,_that.attachments,_that.isWeeklyTask,_that.weekStart,_that.order,_that.completedAt,_that.createdBy,_that.createdAt,_that.updatedAt);case _:
+return $default(_that.id,_that.title,_that.description,_that.status,_that.boardId,_that.assignees,_that.dueDate,_that.emojiTag,_that.subtasks,_that.attachments,_that.isWeeklyTask,_that.weekStart,_that.order,_that.completedAt,_that.archivedAt,_that.isBlocked,_that.blockedReason,_that.recurrenceRule,_that.createdBy,_that.createdAt,_that.updatedAt);case _:
   return orElse();
 
 }
@@ -729,10 +737,10 @@ return $default(_that.id,_that.title,_that.description,_that.status,_that.boardI
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String title,  String? description,  String status,  String boardId,  List<String> assignees,  DateTime? dueDate,  String? emojiTag,  List<Subtask> subtasks,  List<Attachment> attachments,  bool isWeeklyTask,  DateTime? weekStart,  int order,  DateTime? completedAt,  String createdBy,  DateTime createdAt,  DateTime updatedAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String title,  String? description,  String status,  String boardId,  List<String> assignees,  DateTime? dueDate,  String? emojiTag,  List<Subtask> subtasks,  List<Attachment> attachments,  bool isWeeklyTask,  DateTime? weekStart,  int order,  DateTime? completedAt,  DateTime? archivedAt,  bool isBlocked,  String? blockedReason,  String recurrenceRule,  String createdBy,  DateTime createdAt,  DateTime updatedAt)  $default,) {final _that = this;
 switch (_that) {
 case _TaskModel():
-return $default(_that.id,_that.title,_that.description,_that.status,_that.boardId,_that.assignees,_that.dueDate,_that.emojiTag,_that.subtasks,_that.attachments,_that.isWeeklyTask,_that.weekStart,_that.order,_that.completedAt,_that.createdBy,_that.createdAt,_that.updatedAt);case _:
+return $default(_that.id,_that.title,_that.description,_that.status,_that.boardId,_that.assignees,_that.dueDate,_that.emojiTag,_that.subtasks,_that.attachments,_that.isWeeklyTask,_that.weekStart,_that.order,_that.completedAt,_that.archivedAt,_that.isBlocked,_that.blockedReason,_that.recurrenceRule,_that.createdBy,_that.createdAt,_that.updatedAt);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -749,10 +757,10 @@ return $default(_that.id,_that.title,_that.description,_that.status,_that.boardI
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String title,  String? description,  String status,  String boardId,  List<String> assignees,  DateTime? dueDate,  String? emojiTag,  List<Subtask> subtasks,  List<Attachment> attachments,  bool isWeeklyTask,  DateTime? weekStart,  int order,  DateTime? completedAt,  String createdBy,  DateTime createdAt,  DateTime updatedAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String title,  String? description,  String status,  String boardId,  List<String> assignees,  DateTime? dueDate,  String? emojiTag,  List<Subtask> subtasks,  List<Attachment> attachments,  bool isWeeklyTask,  DateTime? weekStart,  int order,  DateTime? completedAt,  DateTime? archivedAt,  bool isBlocked,  String? blockedReason,  String recurrenceRule,  String createdBy,  DateTime createdAt,  DateTime updatedAt)?  $default,) {final _that = this;
 switch (_that) {
 case _TaskModel() when $default != null:
-return $default(_that.id,_that.title,_that.description,_that.status,_that.boardId,_that.assignees,_that.dueDate,_that.emojiTag,_that.subtasks,_that.attachments,_that.isWeeklyTask,_that.weekStart,_that.order,_that.completedAt,_that.createdBy,_that.createdAt,_that.updatedAt);case _:
+return $default(_that.id,_that.title,_that.description,_that.status,_that.boardId,_that.assignees,_that.dueDate,_that.emojiTag,_that.subtasks,_that.attachments,_that.isWeeklyTask,_that.weekStart,_that.order,_that.completedAt,_that.archivedAt,_that.isBlocked,_that.blockedReason,_that.recurrenceRule,_that.createdBy,_that.createdAt,_that.updatedAt);case _:
   return null;
 
 }
@@ -764,7 +772,7 @@ return $default(_that.id,_that.title,_that.description,_that.status,_that.boardI
 @JsonSerializable()
 
 class _TaskModel implements TaskModel {
-  const _TaskModel({required this.id, required this.title, this.description, this.status = 'todo', required this.boardId, final  List<String> assignees = const [], this.dueDate, this.emojiTag, final  List<Subtask> subtasks = const [], final  List<Attachment> attachments = const [], this.isWeeklyTask = false, this.weekStart, this.order = 0, this.completedAt, required this.createdBy, required this.createdAt, required this.updatedAt}): _assignees = assignees,_subtasks = subtasks,_attachments = attachments;
+  const _TaskModel({required this.id, required this.title, this.description, this.status = 'todo', required this.boardId, final  List<String> assignees = const [], this.dueDate, this.emojiTag, final  List<Subtask> subtasks = const [], final  List<Attachment> attachments = const [], this.isWeeklyTask = false, this.weekStart, this.order = 0, this.completedAt, this.archivedAt, this.isBlocked = false, this.blockedReason, this.recurrenceRule = 'never', required this.createdBy, required this.createdAt, required this.updatedAt}): _assignees = assignees,_subtasks = subtasks,_attachments = attachments;
   factory _TaskModel.fromJson(Map<String, dynamic> json) => _$TaskModelFromJson(json);
 
 @override final  String id;
@@ -800,6 +808,14 @@ class _TaskModel implements TaskModel {
 @override final  DateTime? weekStart;
 @override@JsonKey() final  int order;
 @override final  DateTime? completedAt;
+/// When non-null, the task is archived and hidden from the board.
+@override final  DateTime? archivedAt;
+/// Whether this task is blocked.
+@override@JsonKey() final  bool isBlocked;
+/// Reason why the task is blocked.
+@override final  String? blockedReason;
+/// Recurrence rule: 'never' | 'daily' | 'weekly' | 'biweekly' | 'monthly'
+@override@JsonKey() final  String recurrenceRule;
 @override final  String createdBy;
 @override final  DateTime createdAt;
 @override final  DateTime updatedAt;
@@ -817,16 +833,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _TaskModel&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&(identical(other.status, status) || other.status == status)&&(identical(other.boardId, boardId) || other.boardId == boardId)&&const DeepCollectionEquality().equals(other._assignees, _assignees)&&(identical(other.dueDate, dueDate) || other.dueDate == dueDate)&&(identical(other.emojiTag, emojiTag) || other.emojiTag == emojiTag)&&const DeepCollectionEquality().equals(other._subtasks, _subtasks)&&const DeepCollectionEquality().equals(other._attachments, _attachments)&&(identical(other.isWeeklyTask, isWeeklyTask) || other.isWeeklyTask == isWeeklyTask)&&(identical(other.weekStart, weekStart) || other.weekStart == weekStart)&&(identical(other.order, order) || other.order == order)&&(identical(other.completedAt, completedAt) || other.completedAt == completedAt)&&(identical(other.createdBy, createdBy) || other.createdBy == createdBy)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _TaskModel&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&(identical(other.status, status) || other.status == status)&&(identical(other.boardId, boardId) || other.boardId == boardId)&&const DeepCollectionEquality().equals(other._assignees, _assignees)&&(identical(other.dueDate, dueDate) || other.dueDate == dueDate)&&(identical(other.emojiTag, emojiTag) || other.emojiTag == emojiTag)&&const DeepCollectionEquality().equals(other._subtasks, _subtasks)&&const DeepCollectionEquality().equals(other._attachments, _attachments)&&(identical(other.isWeeklyTask, isWeeklyTask) || other.isWeeklyTask == isWeeklyTask)&&(identical(other.weekStart, weekStart) || other.weekStart == weekStart)&&(identical(other.order, order) || other.order == order)&&(identical(other.completedAt, completedAt) || other.completedAt == completedAt)&&(identical(other.archivedAt, archivedAt) || other.archivedAt == archivedAt)&&(identical(other.isBlocked, isBlocked) || other.isBlocked == isBlocked)&&(identical(other.blockedReason, blockedReason) || other.blockedReason == blockedReason)&&(identical(other.recurrenceRule, recurrenceRule) || other.recurrenceRule == recurrenceRule)&&(identical(other.createdBy, createdBy) || other.createdBy == createdBy)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,title,description,status,boardId,const DeepCollectionEquality().hash(_assignees),dueDate,emojiTag,const DeepCollectionEquality().hash(_subtasks),const DeepCollectionEquality().hash(_attachments),isWeeklyTask,weekStart,order,completedAt,createdBy,createdAt,updatedAt);
+int get hashCode => Object.hashAll([runtimeType,id,title,description,status,boardId,const DeepCollectionEquality().hash(_assignees),dueDate,emojiTag,const DeepCollectionEquality().hash(_subtasks),const DeepCollectionEquality().hash(_attachments),isWeeklyTask,weekStart,order,completedAt,archivedAt,isBlocked,blockedReason,recurrenceRule,createdBy,createdAt,updatedAt]);
 
 @override
 String toString() {
-  return 'TaskModel(id: $id, title: $title, description: $description, status: $status, boardId: $boardId, assignees: $assignees, dueDate: $dueDate, emojiTag: $emojiTag, subtasks: $subtasks, attachments: $attachments, isWeeklyTask: $isWeeklyTask, weekStart: $weekStart, order: $order, completedAt: $completedAt, createdBy: $createdBy, createdAt: $createdAt, updatedAt: $updatedAt)';
+  return 'TaskModel(id: $id, title: $title, description: $description, status: $status, boardId: $boardId, assignees: $assignees, dueDate: $dueDate, emojiTag: $emojiTag, subtasks: $subtasks, attachments: $attachments, isWeeklyTask: $isWeeklyTask, weekStart: $weekStart, order: $order, completedAt: $completedAt, archivedAt: $archivedAt, isBlocked: $isBlocked, blockedReason: $blockedReason, recurrenceRule: $recurrenceRule, createdBy: $createdBy, createdAt: $createdAt, updatedAt: $updatedAt)';
 }
 
 
@@ -837,7 +853,7 @@ abstract mixin class _$TaskModelCopyWith<$Res> implements $TaskModelCopyWith<$Re
   factory _$TaskModelCopyWith(_TaskModel value, $Res Function(_TaskModel) _then) = __$TaskModelCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String title, String? description, String status, String boardId, List<String> assignees, DateTime? dueDate, String? emojiTag, List<Subtask> subtasks, List<Attachment> attachments, bool isWeeklyTask, DateTime? weekStart, int order, DateTime? completedAt, String createdBy, DateTime createdAt, DateTime updatedAt
+ String id, String title, String? description, String status, String boardId, List<String> assignees, DateTime? dueDate, String? emojiTag, List<Subtask> subtasks, List<Attachment> attachments, bool isWeeklyTask, DateTime? weekStart, int order, DateTime? completedAt, DateTime? archivedAt, bool isBlocked, String? blockedReason, String recurrenceRule, String createdBy, DateTime createdAt, DateTime updatedAt
 });
 
 
@@ -854,7 +870,7 @@ class __$TaskModelCopyWithImpl<$Res>
 
 /// Create a copy of TaskModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? title = null,Object? description = freezed,Object? status = null,Object? boardId = null,Object? assignees = null,Object? dueDate = freezed,Object? emojiTag = freezed,Object? subtasks = null,Object? attachments = null,Object? isWeeklyTask = null,Object? weekStart = freezed,Object? order = null,Object? completedAt = freezed,Object? createdBy = null,Object? createdAt = null,Object? updatedAt = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? title = null,Object? description = freezed,Object? status = null,Object? boardId = null,Object? assignees = null,Object? dueDate = freezed,Object? emojiTag = freezed,Object? subtasks = null,Object? attachments = null,Object? isWeeklyTask = null,Object? weekStart = freezed,Object? order = null,Object? completedAt = freezed,Object? archivedAt = freezed,Object? isBlocked = null,Object? blockedReason = freezed,Object? recurrenceRule = null,Object? createdBy = null,Object? createdAt = null,Object? updatedAt = null,}) {
   return _then(_TaskModel(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
@@ -870,7 +886,11 @@ as List<Attachment>,isWeeklyTask: null == isWeeklyTask ? _self.isWeeklyTask : is
 as bool,weekStart: freezed == weekStart ? _self.weekStart : weekStart // ignore: cast_nullable_to_non_nullable
 as DateTime?,order: null == order ? _self.order : order // ignore: cast_nullable_to_non_nullable
 as int,completedAt: freezed == completedAt ? _self.completedAt : completedAt // ignore: cast_nullable_to_non_nullable
-as DateTime?,createdBy: null == createdBy ? _self.createdBy : createdBy // ignore: cast_nullable_to_non_nullable
+as DateTime?,archivedAt: freezed == archivedAt ? _self.archivedAt : archivedAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,isBlocked: null == isBlocked ? _self.isBlocked : isBlocked // ignore: cast_nullable_to_non_nullable
+as bool,blockedReason: freezed == blockedReason ? _self.blockedReason : blockedReason // ignore: cast_nullable_to_non_nullable
+as String?,recurrenceRule: null == recurrenceRule ? _self.recurrenceRule : recurrenceRule // ignore: cast_nullable_to_non_nullable
+as String,createdBy: null == createdBy ? _self.createdBy : createdBy // ignore: cast_nullable_to_non_nullable
 as String,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,updatedAt: null == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
 as DateTime,

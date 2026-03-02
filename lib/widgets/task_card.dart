@@ -12,20 +12,26 @@ class TaskCard extends StatelessWidget {
     super.key,
     required this.task,
     this.onTap,
+    this.onToggleComplete,
     this.memberNames = const {},
   });
 
   final TaskModel task;
   final VoidCallback? onTap;
 
+  /// Called when the inline completion checkbox is tapped.
+  final VoidCallback? onToggleComplete;
+
   /// Map of userId → displayName for showing assignee avatars.
   final Map<String, String> memberNames;
 
   @override
   Widget build(BuildContext context) {
-    final accentColor = AppColors.statusAccent(task.status);
+    final accentColor = task.isBlocked
+        ? AppColors.error
+        : AppColors.statusAccent(task.status);
     final colors = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final ext = Theme.of(context).extension<AppColorsExtension>()!;
 
     return GestureDetector(
       onTap: onTap,
@@ -37,7 +43,7 @@ class TaskCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: isDark ? AppColors.darkCardShadow : AppColors.cardShadow,
+              color: ext.cardShadow,
               blurRadius: 6,
               offset: const Offset(0, 2),
             ),
@@ -56,19 +62,81 @@ class TaskCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Title row with emoji tag
+                      // Blocked badge
+                      if (task.isBlocked) ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.error.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.block, size: 12,
+                                  color: AppColors.error),
+                              const SizedBox(width: 3),
+                              Text(
+                                'Blocked',
+                                style: AppTextStyles.caption.copyWith(
+                                  color: AppColors.error,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 10,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                      ],
+                      // Title row with completion checkbox and emoji tag
                       Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          if (onToggleComplete != null) ...[
+                            GestureDetector(
+                              onTap: onToggleComplete,
+                              child: Padding(
+                                padding: const EdgeInsets.only(right: 8, top: 2),
+                                child: Icon(
+                                  task.status == 'done'
+                                      ? Icons.check_circle
+                                      : Icons.circle_outlined,
+                                  size: 20,
+                                  color: task.status == 'done'
+                                      ? AppColors.statusDone
+                                      : colors.onSurface.withValues(alpha: 0.35),
+                                ),
+                              ),
+                            ),
+                          ],
                           Expanded(
                             child: Text(
                               task.title,
                               style: AppTextStyles.bodyMedium.copyWith(
-                                color: colors.onSurface,
+                                color: task.isBlocked
+                                    ? colors.onSurface.withValues(alpha: 0.7)
+                                    : colors.onSurface,
+                                decoration: task.status == 'done'
+                                    ? TextDecoration.lineThrough
+                                    : null,
                               ),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
+                          if (task.recurrenceRule != 'never') ...[
+                            const SizedBox(width: 6),
+                            Icon(
+                              Icons.repeat,
+                              size: 16,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .primary
+                                  .withValues(alpha: 0.6),
+                            ),
+                          ],
                           if (task.emojiTag != null) ...[
                             const SizedBox(width: 8),
                             Text(task.emojiTag!,

@@ -24,6 +24,7 @@ abstract final class AppTheme {
       useMaterial3: true,
       colorScheme: colorScheme,
       scaffoldBackgroundColor: AppColors.gradientTop,
+      extensions: const [AppColorsExtension.light],
       textTheme: _textTheme(AppColors.textPrimary),
 
       // ── AppBar ─────────────────────────────────────────
@@ -219,6 +220,7 @@ abstract final class AppTheme {
       useMaterial3: true,
       colorScheme: colorScheme,
       scaffoldBackgroundColor: AppColors.darkScaffold,
+      extensions: const [AppColorsExtension.dark],
       textTheme: _textTheme(AppColors.darkTextPrimary),
 
       // ── AppBar ─────────────────────────────────────────

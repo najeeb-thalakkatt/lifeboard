@@ -22,7 +22,7 @@ import 'package:lifeboard/providers/profile_provider.dart';
 
 // ── Router ───────────────────────────────────────────────────
 
-final _rootNavigatorKey = GlobalKey<NavigatorState>();
+final rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorKey = GlobalKey<NavigatorState>();
 
 /// Routes only for unauthenticated users (login/signup).
@@ -35,7 +35,7 @@ final routerProvider = Provider<GoRouter>((ref) {
   final authNotifier = ref.watch(authNotifierProvider);
 
   return GoRouter(
-    navigatorKey: _rootNavigatorKey,
+    navigatorKey: rootNavigatorKey,
     initialLocation: '/splash',
     refreshListenable: authNotifier,
     redirect: (context, state) {

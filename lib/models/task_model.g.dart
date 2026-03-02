@@ -62,6 +62,12 @@ _TaskModel _$TaskModelFromJson(Map<String, dynamic> json) => _TaskModel(
   completedAt: json['completedAt'] == null
       ? null
       : DateTime.parse(json['completedAt'] as String),
+  archivedAt: json['archivedAt'] == null
+      ? null
+      : DateTime.parse(json['archivedAt'] as String),
+  isBlocked: json['isBlocked'] as bool? ?? false,
+  blockedReason: json['blockedReason'] as String?,
+  recurrenceRule: json['recurrenceRule'] as String? ?? 'never',
   createdBy: json['createdBy'] as String,
   createdAt: DateTime.parse(json['createdAt'] as String),
   updatedAt: DateTime.parse(json['updatedAt'] as String),
@@ -83,6 +89,10 @@ Map<String, dynamic> _$TaskModelToJson(_TaskModel instance) =>
       'weekStart': instance.weekStart?.toIso8601String(),
       'order': instance.order,
       'completedAt': instance.completedAt?.toIso8601String(),
+      'archivedAt': instance.archivedAt?.toIso8601String(),
+      'isBlocked': instance.isBlocked,
+      'blockedReason': instance.blockedReason,
+      'recurrenceRule': instance.recurrenceRule,
       'createdBy': instance.createdBy,
       'createdAt': instance.createdAt.toIso8601String(),
       'updatedAt': instance.updatedAt.toIso8601String(),
