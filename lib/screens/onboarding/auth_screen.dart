@@ -1,8 +1,10 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 import 'package:lifeboard/core/utils/validators.dart';
 import 'package:lifeboard/providers/auth_provider.dart';
@@ -78,8 +80,15 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       // User cancelled — do nothing.
     } on FirebaseException catch (e) {
       _showError(e.message ?? 'Google sign-in failed');
+    } on PlatformException catch (e) {
+      // Surface a friendly message for common Google Sign-In platform errors.
+      if (e.code == 'network_error') {
+        _showError('No internet connection. Please check your network and try again.');
+      } else {
+        _showError('Google sign-in failed. Please try again.');
+      }
     } catch (e) {
-      _showError(e.toString());
+      _showError('Google sign-in failed. Please try again.');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -91,10 +100,13 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       await ref.read(authServiceProvider).signInWithApple();
     } on AuthCancelledException {
       // User cancelled — do nothing.
+    } on SignInWithAppleAuthorizationException catch (e) {
+      if (e.code == AuthorizationErrorCode.canceled) return;
+      _showError('Apple Sign-In is not available. Please try another method.');
     } on FirebaseException catch (e) {
       _showError(e.message ?? 'Apple sign-in failed');
     } catch (e) {
-      _showError(e.toString());
+      _showError('Apple sign-in failed. Please try again.');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -164,8 +176,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   child: SafeArea(
                     bottom: false,
                     child: Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                      child: SingleChildScrollView(
+                        child: Column(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Container(
                             width: 80,
@@ -211,11 +224,14 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                         ],
                       ),
                     ),
+                    ),
                   ),
                 ),
 
-                // ── Form Panel (bottom, intrinsic height) ──────
-                Container(
+                // ── Form Panel (bottom, flexible + scrollable) ──
+                Flexible(
+                  flex: _isSignUp ? 7 : 6,
+                  child: Container(
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: const BorderRadius.vertical(
@@ -486,7 +502,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       ),
                     ),
                   ),
-                ),
+                )),
               ],
             );
           },

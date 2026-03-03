@@ -66,10 +66,13 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyCPtF8-e-4bJnS1aYIVPVJSiKcJutHDILU',
-    appId: '1:391763527916:ios:42c105b45df89f6fc53dc9',
+    appId: '1:391763527916:ios:840051ae40f06925c53dc9',
     messagingSenderId: '391763527916',
     projectId: 'lifeboard-8cd26',
     storageBucket: 'lifeboard-8cd26.firebasestorage.app',
-    iosBundleId: 'com.lifeboard.lifeboard',
+    androidClientId: '391763527916-g8u50uc0tpv5u59vn1utdatdp4hot9tk.apps.googleusercontent.com',
+    iosClientId: '391763527916-g4jq6a7tj7gho1a1ldd0cjifg8vc4k1r.apps.googleusercontent.com',
+    iosBundleId: 'com.codehive.lifeboard',
   );
+
 }

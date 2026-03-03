@@ -94,9 +94,15 @@ class AuthService {
       nonce: nonce,
     );
 
+    final idToken = appleCredential.identityToken;
+    if (idToken == null) {
+      throw const AuthCancelledException();
+    }
+
     final oauthCredential = OAuthProvider('apple.com').credential(
-      idToken: appleCredential.identityToken,
+      idToken: idToken,
       rawNonce: rawNonce,
+      accessToken: appleCredential.authorizationCode,
     );
 
     final userCredential = await _auth.signInWithCredential(oauthCredential);
