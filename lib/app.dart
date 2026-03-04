@@ -17,6 +17,7 @@ import 'package:lifeboard/widgets/responsive_shell.dart';
 import 'package:lifeboard/screens/weekly/weekly_view_screen.dart';
 import 'package:lifeboard/screens/profile/profile_settings_screen.dart';
 import 'package:lifeboard/screens/activity/activity_feed_screen.dart';
+import 'package:lifeboard/screens/homepad/homepad_screen.dart';
 import 'package:lifeboard/screens/splash/splash_screen.dart';
 import 'package:lifeboard/providers/profile_provider.dart';
 
@@ -138,6 +139,12 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/weekly',
             pageBuilder: (context, state) => const NoTransitionPage(
               child: WeeklyViewScreen(),
+            ),
+          ),
+          GoRoute(
+            path: '/homepad',
+            pageBuilder: (context, state) => const NoTransitionPage(
+              child: HomePadScreen(),
             ),
           ),
           GoRoute(

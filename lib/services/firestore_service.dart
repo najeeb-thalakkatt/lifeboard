@@ -9,6 +9,7 @@ import 'package:lifeboard/core/errors/app_exceptions.dart';
 import 'package:lifeboard/models/activity_model.dart';
 import 'package:lifeboard/models/board_model.dart';
 import 'package:lifeboard/models/comment_model.dart';
+import 'package:lifeboard/models/homepad_item_model.dart';
 import 'package:lifeboard/models/space_model.dart';
 import 'package:lifeboard/models/task_model.dart';
 
@@ -39,6 +40,9 @@ class FirestoreService {
 
   CollectionReference<Map<String, dynamic>> _activityRef(String spaceId) =>
       _spacesRef.doc(spaceId).collection('activity');
+
+  CollectionReference<Map<String, dynamic>> _homePadRef(String spaceId) =>
+      _spacesRef.doc(spaceId).collection('homepad_items');
 
   // ── Space CRUD ─────────────────────────────────────────────
 
@@ -670,6 +674,121 @@ class FirestoreService {
     await _usersRef.doc(userId).update({
       'fcmTokens': FieldValue.arrayRemove([token]),
     });
+  }
+
+  // ── HomePad CRUD ──────────────────────────────────────────────
+
+  /// Streams all HomePad items for a space (only items stored in Firestore,
+  /// i.e. items that have transitioned away from 'available').
+  Stream<List<HomePadItem>> getHomePadItems(String spaceId) {
+    return _homePadRef(spaceId)
+        .snapshots()
+        .map((snapshot) =>
+            snapshot.docs.map(HomePadItem.fromFirestore).toList());
+  }
+
+  /// Adds or updates a HomePad item in Firestore.
+  Future<void> addHomePadItem({
+    required String spaceId,
+    required HomePadItem item,
+  }) async {
+    final docRef = item.id.startsWith('catalog_')
+        ? _homePadRef(spaceId).doc(item.id)
+        : _homePadRef(spaceId).doc(item.id.isEmpty ? null : item.id);
+    await docRef.set(HomePadItem.toFirestore(item));
+  }
+
+  /// Updates the status of a HomePad item.
+  Future<void> updateHomePadItemStatus({
+    required String spaceId,
+    required String itemId,
+    required String status,
+    required String userId,
+  }) async {
+    final now = Timestamp.fromDate(DateTime.now());
+    final Map<String, dynamic> fields = {'status': status};
+
+    if (status == 'to_buy') {
+      fields['addedBy'] = userId;
+      fields['addedAt'] = now;
+      fields['purchasedBy'] = null;
+      fields['purchasedAt'] = null;
+    } else if (status == 'purchased') {
+      fields['purchasedBy'] = userId;
+      fields['purchasedAt'] = now;
+    } else if (status == 'available') {
+      fields['addedBy'] = null;
+      fields['addedAt'] = null;
+      fields['purchasedBy'] = null;
+      fields['purchasedAt'] = null;
+    }
+
+    await _homePadRef(spaceId).doc(itemId).update(fields);
+  }
+
+  /// Batch-marks all "to_buy" items as purchased.
+  Future<int> batchMarkAllDone({
+    required String spaceId,
+    required String userId,
+  }) async {
+    final snapshot = await _homePadRef(spaceId)
+        .where('status', isEqualTo: 'to_buy')
+        .get();
+
+    if (snapshot.docs.isEmpty) return 0;
+
+    final batch = _firestore.batch();
+    final now = Timestamp.fromDate(DateTime.now());
+
+    for (final doc in snapshot.docs) {
+      batch.update(doc.reference, {
+        'status': 'purchased',
+        'purchasedBy': userId,
+        'purchasedAt': now,
+      });
+    }
+
+    await batch.commit();
+    return snapshot.docs.length;
+  }
+
+  /// Deletes a HomePad item (custom items only).
+  Future<void> deleteHomePadItem({
+    required String spaceId,
+    required String itemId,
+  }) async {
+    await _homePadRef(spaceId).doc(itemId).delete();
+  }
+
+  /// Clears all purchased HomePad items (moves them back to not stored in Firestore).
+  Future<int> clearPurchasedHomePadItems({
+    required String spaceId,
+  }) async {
+    final snapshot = await _homePadRef(spaceId)
+        .where('status', isEqualTo: 'purchased')
+        .get();
+
+    if (snapshot.docs.isEmpty) return 0;
+
+    final batch = _firestore.batch();
+    for (final doc in snapshot.docs) {
+      final data = doc.data();
+      final isCustom = data['isCustom'] as bool? ?? false;
+      if (isCustom) {
+        // Custom items: reset to available
+        batch.update(doc.reference, {
+          'status': 'available',
+          'purchasedBy': null,
+          'purchasedAt': null,
+        });
+      } else {
+        // Prebuilt items: delete the Firestore doc (returns to catalog-only state)
+        batch.delete(doc.reference);
+      }
+    }
+
+    await batch.commit();
+    return snapshot.docs.length;
   }
 
   // ── Invite Code Generation ─────────────────────────────────

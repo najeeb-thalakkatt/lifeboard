@@ -35,6 +35,11 @@ class BottomNavBar extends ConsumerWidget {
           selectedIcon: Icon(Icons.calendar_today),
           label: 'This Week',
         ),
+        const NavigationDestination(
+          icon: Icon(Icons.shopping_cart_outlined),
+          selectedIcon: Icon(Icons.shopping_cart),
+          label: 'HomePad',
+        ),
         NavigationDestination(
           icon: Badge(
             isLabelVisible: unreadCount > 0,

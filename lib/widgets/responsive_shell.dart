@@ -17,7 +17,7 @@ class ResponsiveShell extends StatelessWidget {
   final String currentLocation;
   final Widget child;
 
-  static const _paths = ['/spaces', '/weekly', '/activity', '/profile'];
+  static const _paths = ['/spaces', '/weekly', '/homepad', '/activity', '/profile'];
 
   static const _destinations = [
     _NavItem(
@@ -29,6 +29,11 @@ class ResponsiveShell extends StatelessWidget {
       icon: Icons.calendar_today_outlined,
       selectedIcon: Icons.calendar_today,
       label: 'This Week',
+    ),
+    _NavItem(
+      icon: Icons.shopping_cart_outlined,
+      selectedIcon: Icons.shopping_cart,
+      label: 'HomePad',
     ),
     _NavItem(
       icon: Icons.notifications_outlined,

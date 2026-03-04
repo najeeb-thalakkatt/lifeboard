@@ -95,6 +95,12 @@ service cloud.firestore {
         }
       }
 
+      // ── HomePad Items (sub-collection) ──────────────────────────
+      match /homepad_items/{itemId} {
+        allow read, write: if isAuthenticated() &&
+          request.auth.uid in get(/databases/$(database)/documents/spaces/$(spaceId)).data.members;
+      }
+
       // ── Activity (sub-collection) ────────────────────────────
       match /activity/{activityId} {
         allow read: if isAuthenticated() &&
