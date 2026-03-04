@@ -8,10 +8,11 @@
     "shell": "npm run build && firebase functions:shell",
     "start": "npm run shell",
     "deploy": "firebase deploy --only functions",
-    "logs": "firebase functions:log"
+    "logs": "firebase functions:log",
+    "test-push": "npx ts-node src/test-push.ts"
   },
   "engines": {
-    "node": "18"
+    "node": "20"
   },
   "main": "lib/index.js",
   "dependencies": {
@@ -19,6 +20,7 @@
     "firebase-functions": "^5.0.0"
   },
   "devDependencies": {
+    "ts-node": "^10.9.2",
     "typescript": "^5.3.0"
   },
   "private": true

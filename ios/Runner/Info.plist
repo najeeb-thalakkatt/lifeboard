@@ -56,7 +56,16 @@
 			<string>UIInterfaceOrientationLandscapeLeft</string>
 			<string>UIInterfaceOrientationLandscapeRight</string>
 		</array>
+		<key>NSCameraUsageDescription</key>
+		<string>Lifeboard needs camera access to take photos for task attachments.</string>
+		<key>NSPhotoLibraryUsageDescription</key>
+		<string>Lifeboard needs photo library access to attach images to tasks.</string>
 		<key>UIStatusBarHidden</key>
 		<false/>
+		<key>UIBackgroundModes</key>
+		<array>
+			<string>fetch</string>
+			<string>remote-notification</string>
+		</array>
 	</dict>
 </plist>
