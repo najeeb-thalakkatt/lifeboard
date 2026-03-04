@@ -422,11 +422,14 @@ void main() {
       // Initially in login mode
       expect(find.text('Welcome Back'), findsOneWidget);
 
-      // Tap the toggle
-      await tester.tap(find.descendant(
+      // Scroll the toggle into view and tap it
+      final toggleFinder = find.descendant(
         of: find.byType(TextButton),
         matching: find.text('Sign Up'),
-      ));
+      );
+      await tester.ensureVisible(toggleFinder);
+      await tester.pumpAndSettle();
+      await tester.tap(toggleFinder);
       await tester.pumpAndSettle();
 
       // Now in sign up mode

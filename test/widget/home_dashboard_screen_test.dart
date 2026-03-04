@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:lifeboard/models/space_model.dart';
 import 'package:lifeboard/models/user_model.dart';
@@ -108,66 +109,29 @@ final _testSpaces = [
 
 void main() {
   group('HomeDashboardScreen', () {
-    testWidgets('shows welcome header with user first name', (tester) async {
-      await tester.pumpWidget(
-        _buildTestApp(spaces: _testSpaces, user: _testUser),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.textContaining('Welcome back, Alex'), findsOneWidget);
+    setUp(() {
+      SharedPreferences.setMockInitialValues({});
     });
 
-    testWidgets('shows "Your spaces" subtitle', (tester) async {
+    testWidgets('shows loading indicator when spaces are loading',
+        (tester) async {
       await tester.pumpWidget(
-        _buildTestApp(spaces: _testSpaces, user: _testUser),
+        _buildTestApp(spaces: [], loadingSpaces: true),
       );
-      await tester.pumpAndSettle();
+      await tester.pump();
 
-      expect(find.text('Your spaces'), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
     });
 
-    testWidgets('displays space cards with names', (tester) async {
+    testWidgets('shows error view with retry when spaces fail to load',
+        (tester) async {
       await tester.pumpWidget(
-        _buildTestApp(spaces: _testSpaces, user: _testUser),
+        _buildTestApp(spaces: [], spacesError: 'Network error'),
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Our Home'), findsOneWidget);
-      expect(find.text('Work Projects'), findsOneWidget);
-    });
-
-    testWidgets('displays member count on space cards', (tester) async {
-      await tester.pumpWidget(
-        _buildTestApp(spaces: _testSpaces, user: _testUser),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.text('2 members'), findsOneWidget);
-      expect(find.text('1 member'), findsOneWidget);
-    });
-
-    testWidgets('displays theme tags on space cards', (tester) async {
-      await tester.pumpWidget(
-        _buildTestApp(spaces: _testSpaces, user: _testUser),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.text('Home'), findsOneWidget);
-      expect(find.text('Kids'), findsOneWidget);
-      expect(find.text('Finances'), findsOneWidget);
-      expect(find.text('Office'), findsOneWidget);
-    });
-
-    testWidgets('tapping a space card navigates to board', (tester) async {
-      await tester.pumpWidget(
-        _buildTestApp(spaces: _testSpaces, user: _testUser),
-      );
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('Our Home'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Board: space-1'), findsOneWidget);
+      expect(find.text('Could not load spaces'), findsOneWidget);
+      expect(find.text('Retry'), findsOneWidget);
     });
 
     testWidgets('shows empty state when no spaces', (tester) async {
@@ -193,66 +157,35 @@ void main() {
       expect(find.text('Create Space'), findsOneWidget);
     });
 
-    testWidgets('shows FAB with "New Space" label', (tester) async {
-      await tester.pumpWidget(
-        _buildTestApp(spaces: _testSpaces, user: _testUser),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.byType(FloatingActionButton), findsOneWidget);
-      expect(find.text('New Space'), findsOneWidget);
-    });
-
-    testWidgets('FAB navigates to create-space screen', (tester) async {
-      await tester.pumpWidget(
-        _buildTestApp(spaces: _testSpaces, user: _testUser),
-      );
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('New Space'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Create Space'), findsOneWidget);
-    });
-
-    testWidgets('shows loading indicator when spaces are loading',
+    testWidgets(
+        'shows loading spinner while redirecting when spaces exist',
         (tester) async {
       await tester.pumpWidget(
-        _buildTestApp(spaces: [], loadingSpaces: true),
+        _buildTestApp(spaces: _testSpaces, user: _testUser),
       );
+      // Only pump once — don't settle — so we can observe the redirect
+      // spinner before SharedPreferences async completes.
+      await tester.pump();
       await tester.pump();
 
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
     });
 
-    testWidgets('shows error view with retry when spaces fail to load',
+    testWidgets('redirects to first space board when spaces exist',
         (tester) async {
       await tester.pumpWidget(
-        _buildTestApp(spaces: [], spacesError: 'Network error'),
+        _buildTestApp(spaces: _testSpaces, user: _testUser),
       );
+      await tester.pump();
+      await tester.pump();
+
+      // Run the async SharedPreferences lookup
+      await tester.runAsync(() => Future<void>.delayed(
+            const Duration(milliseconds: 100),
+          ));
       await tester.pumpAndSettle();
 
-      expect(find.text('Could not load spaces'), findsOneWidget);
-      expect(find.text('Retry'), findsOneWidget);
-    });
-
-    testWidgets('shows generic welcome when user has no name', (tester) async {
-      final noNameUser = UserModel(
-        id: 'user-1',
-        displayName: '',
-        email: 'alex@example.com',
-        spaceIds: [],
-        createdAt: DateTime(2025, 1, 1),
-      );
-
-      await tester.pumpWidget(
-        _buildTestApp(spaces: [], user: noNameUser),
-      );
-      await tester.pumpAndSettle();
-
-      // Should show generic welcome without a name
-      expect(find.textContaining('Welcome back'), findsOneWidget);
-      expect(find.textContaining('Welcome back, '), findsNothing);
+      expect(find.text('Board: space-1'), findsOneWidget);
     });
   });
 }

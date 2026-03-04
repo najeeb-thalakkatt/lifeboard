@@ -210,7 +210,7 @@ void main() {
           )).called(1);
     });
 
-    test('does not create Firestore doc on sign in', () async {
+    test('creates Firestore doc if none exists on sign in', () async {
       when(() => mockAuth.signInWithEmailAndPassword(
             email: any(named: 'email'),
             password: any(named: 'password'),
@@ -221,9 +221,36 @@ void main() {
         password: 'password123',
       );
 
-      // Firestore users collection should be empty — signIn doesn't create docs
-      final snapshot = await fakeFirestore.collection('users').get();
-      expect(snapshot.docs, isEmpty);
+      // signInWithEmail now ensures a user doc exists via _createUserDocIfNeeded
+      final doc =
+          await fakeFirestore.collection('users').doc('test-uid').get();
+      expect(doc.exists, isTrue);
+    });
+
+    test('does not overwrite existing Firestore doc on sign in', () async {
+      // Pre-create a user doc with a custom display name
+      await fakeFirestore.collection('users').doc('test-uid').set({
+        'displayName': 'Existing Name',
+        'email': 'test@example.com',
+        'spaceIds': ['space-1'],
+        'createdAt': Timestamp.now(),
+      });
+
+      when(() => mockAuth.signInWithEmailAndPassword(
+            email: any(named: 'email'),
+            password: any(named: 'password'),
+          )).thenAnswer((_) async => mockCredential);
+
+      await authService.signInWithEmail(
+        email: 'alice@example.com',
+        password: 'password123',
+      );
+
+      // Existing doc should not be overwritten
+      final doc =
+          await fakeFirestore.collection('users').doc('test-uid').get();
+      expect(doc.data()!['displayName'], 'Existing Name');
+      expect(doc.data()!['spaceIds'], ['space-1']);
     });
 
     test('propagates FirebaseAuthException on wrong password', () async {
