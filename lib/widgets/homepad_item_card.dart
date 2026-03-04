@@ -15,11 +15,17 @@ class HomePadItemCard extends StatelessWidget {
     required this.item,
     required this.onTogglePurchased,
     required this.onDismissed,
+    this.dismissLabel,
+    this.dismissColor,
+    this.dismissIcon,
   });
 
   final HomePadItem item;
   final VoidCallback onTogglePurchased;
   final VoidCallback onDismissed;
+  final String? dismissLabel;
+  final Color? dismissColor;
+  final IconData? dismissIcon;
 
   String _frequencyLabel(String frequency) {
     switch (frequency) {
@@ -51,14 +57,14 @@ class HomePadItemCard extends StatelessWidget {
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
         decoration: BoxDecoration(
-          color: AppColors.statusDone,
+          color: dismissColor ?? AppColors.statusDone,
           borderRadius: BorderRadius.circular(10),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'Done',
+              dismissLabel ?? 'Done',
               style: GoogleFonts.inter(
                 color: Colors.white,
                 fontWeight: FontWeight.w600,
@@ -66,7 +72,7 @@ class HomePadItemCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            const Icon(Icons.check, color: Colors.white),
+            Icon(dismissIcon ?? Icons.check, color: Colors.white),
           ],
         ),
       ),

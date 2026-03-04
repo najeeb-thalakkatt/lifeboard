@@ -695,7 +695,7 @@ class FirestoreService {
     final docRef = item.id.startsWith('catalog_')
         ? _homePadRef(spaceId).doc(item.id)
         : _homePadRef(spaceId).doc(item.id.isEmpty ? null : item.id);
-    await docRef.set(HomePadItem.toFirestore(item));
+    await docRef.set(HomePadItem.toFirestore(item), SetOptions(merge: true));
   }
 
   /// Updates the status of a HomePad item.
@@ -737,19 +737,24 @@ class FirestoreService {
 
     if (snapshot.docs.isEmpty) return 0;
 
-    final batch = _firestore.batch();
     final now = Timestamp.fromDate(DateTime.now());
+    final docs = snapshot.docs;
 
-    for (final doc in snapshot.docs) {
-      batch.update(doc.reference, {
-        'status': 'purchased',
-        'purchasedBy': userId,
-        'purchasedAt': now,
-      });
+    // Chunk into batches of 500 (Firestore limit)
+    for (var i = 0; i < docs.length; i += 500) {
+      final batch = _firestore.batch();
+      final chunk = docs.skip(i).take(500);
+      for (final doc in chunk) {
+        batch.update(doc.reference, {
+          'status': 'purchased',
+          'purchasedBy': userId,
+          'purchasedAt': now,
+        });
+      }
+      await batch.commit();
     }
 
-    await batch.commit();
-    return snapshot.docs.length;
+    return docs.length;
   }
 
   /// Deletes a HomePad item (custom items only).
@@ -770,25 +775,31 @@ class FirestoreService {
 
     if (snapshot.docs.isEmpty) return 0;
 
-    final batch = _firestore.batch();
-    for (final doc in snapshot.docs) {
-      final data = doc.data();
-      final isCustom = data['isCustom'] as bool? ?? false;
-      if (isCustom) {
-        // Custom items: reset to available
-        batch.update(doc.reference, {
-          'status': 'available',
-          'purchasedBy': null,
-          'purchasedAt': null,
-        });
-      } else {
-        // Prebuilt items: delete the Firestore doc (returns to catalog-only state)
-        batch.delete(doc.reference);
+    final docs = snapshot.docs;
+
+    // Chunk into batches of 500 (Firestore limit)
+    for (var i = 0; i < docs.length; i += 500) {
+      final batch = _firestore.batch();
+      final chunk = docs.skip(i).take(500);
+      for (final doc in chunk) {
+        final data = doc.data();
+        final isCustom = data['isCustom'] as bool? ?? false;
+        if (isCustom) {
+          // Custom items: reset to available
+          batch.update(doc.reference, {
+            'status': 'available',
+            'purchasedBy': null,
+            'purchasedAt': null,
+          });
+        } else {
+          // Prebuilt items: delete the Firestore doc (returns to catalog-only state)
+          batch.delete(doc.reference);
+        }
       }
+      await batch.commit();
     }
 
-    await batch.commit();
-    return snapshot.docs.length;
+    return docs.length;
   }
 
   // ── Invite Code Generation ─────────────────────────────────

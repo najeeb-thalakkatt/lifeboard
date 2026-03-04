@@ -97,7 +97,7 @@ abstract class HomePadItem with _$HomePadItem {
       subcategory: json['subcategory'] as String? ?? '',
       frequency: json['frequency'] as String? ?? 'as_needed',
       order: json['order'] as int? ?? 0,
-      createdAt: DateTime.now(),
+      createdAt: DateTime.utc(2026, 1, 1),
     );
   }
 }

@@ -63,10 +63,9 @@ class _AddItemSheetState extends ConsumerState<AddItemSheet> {
     final q = _query.toLowerCase();
     return allItems
         .where((i) =>
-            i.status == 'available' &&
-            (i.name.toLowerCase().contains(q) ||
-                i.category.toLowerCase().contains(q) ||
-                i.subcategory.toLowerCase().contains(q)))
+            i.name.toLowerCase().contains(q) ||
+            i.category.toLowerCase().contains(q) ||
+            i.subcategory.toLowerCase().contains(q))
         .toList();
   }
 
@@ -85,15 +84,18 @@ class _AddItemSheetState extends ConsumerState<AddItemSheet> {
 
     setState(() => _isSaving = true);
 
-    await ref.read(homePadActionProvider.notifier).addCustomItem(
-          spaceId: widget.spaceId,
-          name: name,
-          emoji: _selectedEmoji,
-          category: _selectedCategory,
-          addToList: true,
-        );
-
-    if (mounted) Navigator.of(context).pop(true);
+    try {
+      await ref.read(homePadActionProvider.notifier).addCustomItem(
+            spaceId: widget.spaceId,
+            name: name,
+            emoji: _selectedEmoji,
+            category: _selectedCategory,
+            addToList: true,
+          );
+      if (mounted) Navigator.of(context).pop(true);
+    } catch (_) {
+      if (mounted) setState(() => _isSaving = false);
+    }
   }
 
   @override
@@ -237,31 +239,42 @@ class _AddItemSheetState extends ConsumerState<AddItemSheet> {
 
   /// Single result row
   Widget _buildResultRow(HomePadItem item) {
+    final isAlreadyAdded = item.status == 'to_buy' || item.status == 'purchased';
     return GestureDetector(
-      onTap: () => _addCatalogItem(item),
+      onTap: isAlreadyAdded ? null : () => _addCatalogItem(item),
       behavior: HitTestBehavior.opaque,
-      child: Container(
-        height: 48,
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Row(
-          children: [
-            Text(item.emoji, style: const TextStyle(fontSize: 18)),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                item.name,
-                style: GoogleFonts.inter(
-                  fontSize: 15,
-                  color: AppColors.primaryDark,
+      child: Opacity(
+        opacity: isAlreadyAdded ? 0.5 : 1.0,
+        child: Container(
+          height: 48,
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Row(
+            children: [
+              Text(item.emoji, style: const TextStyle(fontSize: 18)),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  item.name,
+                  style: GoogleFonts.inter(
+                    fontSize: 15,
+                    color: AppColors.primaryDark,
+                  ),
                 ),
               ),
-            ),
-            Icon(
-              Icons.add_circle_outline,
-              color: AppColors.primaryDark.withValues(alpha: 0.4),
-              size: 22,
-            ),
-          ],
+              if (isAlreadyAdded)
+                Icon(
+                  Icons.check_circle,
+                  color: AppColors.statusDone,
+                  size: 22,
+                )
+              else
+                Icon(
+                  Icons.add_circle_outline,
+                  color: AppColors.primaryDark.withValues(alpha: 0.4),
+                  size: 22,
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -381,7 +394,7 @@ class _AddItemSheetState extends ConsumerState<AddItemSheet> {
 
             // Category dropdown
             DropdownButtonFormField<String>(
-              value: _selectedCategory,
+              initialValue: _selectedCategory,
               decoration: const InputDecoration(labelText: 'Category'),
               items: homePadCategories.entries.map((e) {
                 return DropdownMenuItem(

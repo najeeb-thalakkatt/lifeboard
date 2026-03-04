@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:lifeboard/models/homepad_item_model.dart';
+import 'package:lifeboard/models/space_model.dart';
 import 'package:lifeboard/providers/homepad_provider.dart';
 import 'package:lifeboard/providers/space_provider.dart';
 import 'package:lifeboard/screens/homepad/add_item_sheet.dart';
@@ -27,7 +28,15 @@ class HomePadScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final spacesAsync = ref.watch(userSpacesProvider);
-    final spaceId = spacesAsync.valueOrNull?.firstOrNull?.id;
+    final spaceId = ref.watch(selectedHomePadSpaceProvider);
+
+    // Still loading spaces
+    if (spacesAsync.isLoading && spaceId == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('HomePad')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
 
     if (spaceId == null) {
       return Scaffold(
@@ -38,13 +47,16 @@ class HomePadScreen extends ConsumerWidget {
       );
     }
 
-    return _HomePadContent(spaceId: spaceId);
+    final spaces = spacesAsync.valueOrNull ?? [];
+
+    return _HomePadContent(spaceId: spaceId, spaces: spaces);
   }
 }
 
 class _HomePadContent extends ConsumerStatefulWidget {
-  const _HomePadContent({required this.spaceId});
+  const _HomePadContent({required this.spaceId, required this.spaces});
   final String spaceId;
+  final List<SpaceModel> spaces;
 
   @override
   ConsumerState<_HomePadContent> createState() => _HomePadContentState();
@@ -71,6 +83,11 @@ class _HomePadContentState extends ConsumerState<_HomePadContent> {
   @override
   void dispose() {
     _searchController.dispose();
+    // Reset global search/filter state when navigating away
+    Future.microtask(() {
+      ref.read(homePadSearchProvider.notifier).state = '';
+      ref.read(homePadCategoryFilterProvider.notifier).state = null;
+    });
     super.dispose();
   }
 
@@ -89,7 +106,12 @@ class _HomePadContentState extends ConsumerState<_HomePadContent> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('HomePad 🛒', style: AppTextStyles.headingSmall),
+        title: widget.spaces.length > 1
+            ? _SpacePicker(
+                spaces: widget.spaces,
+                selectedSpaceId: spaceId,
+              )
+            : Text('HomePad 🛒', style: AppTextStyles.headingSmall),
       ),
       body: mergedAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -293,6 +315,9 @@ class _HomePadContentState extends ConsumerState<_HomePadContent> {
                         final item = purchasedItems[index];
                         return HomePadItemCard(
                           item: item,
+                          dismissLabel: 'Remove',
+                          dismissColor: Colors.orange.shade700,
+                          dismissIcon: Icons.remove_circle_outline,
                           onTogglePurchased: () {
                             ref
                                 .read(homePadActionProvider.notifier)
@@ -692,6 +717,76 @@ class _RecentlyBoughtHeader extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ── Space Picker (app bar dropdown for multi-space users) ────────
+
+class _SpacePicker extends ConsumerWidget {
+  const _SpacePicker({
+    required this.spaces,
+    required this.selectedSpaceId,
+  });
+
+  final List<SpaceModel> spaces;
+  final String selectedSpaceId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final selectedSpace = spaces.firstWhere(
+      (s) => s.id == selectedSpaceId,
+      orElse: () => spaces.first,
+    );
+
+    return PopupMenuButton<String>(
+      onSelected: (spaceId) {
+        ref.read(selectedHomePadSpaceProvider.notifier).select(spaceId);
+      },
+      offset: const Offset(0, 40),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      itemBuilder: (context) => spaces.map((space) {
+        final isSelected = space.id == selectedSpaceId;
+        return PopupMenuItem<String>(
+          value: space.id,
+          child: Row(
+            children: [
+              Icon(
+                isSelected ? Icons.check_circle : Icons.circle_outlined,
+                size: 18,
+                color: isSelected
+                    ? AppColors.primaryDark
+                    : AppColors.primaryDark.withValues(alpha: 0.3),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  space.name,
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                    color: AppColors.primaryDark,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '${selectedSpace.name} 🛒',
+            style: AppTextStyles.headingSmall,
+          ),
+          const SizedBox(width: 4),
+          Icon(
+            Icons.arrow_drop_down,
+            color: AppColors.primaryDark.withValues(alpha: 0.6),
+          ),
+        ],
       ),
     );
   }

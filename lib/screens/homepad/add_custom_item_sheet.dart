@@ -40,15 +40,18 @@ class _AddCustomItemSheetState extends ConsumerState<AddCustomItemSheet> {
 
     setState(() => _isSaving = true);
 
-    await ref.read(homePadActionProvider.notifier).addCustomItem(
-          spaceId: widget.spaceId,
-          name: name,
-          emoji: _selectedEmoji,
-          category: _selectedCategory,
-          addToList: _addToList,
-        );
-
-    if (mounted) Navigator.of(context).pop();
+    try {
+      await ref.read(homePadActionProvider.notifier).addCustomItem(
+            spaceId: widget.spaceId,
+            name: name,
+            emoji: _selectedEmoji,
+            category: _selectedCategory,
+            addToList: _addToList,
+          );
+      if (mounted) Navigator.of(context).pop();
+    } catch (_) {
+      if (mounted) setState(() => _isSaving = false);
+    }
   }
 
   @override

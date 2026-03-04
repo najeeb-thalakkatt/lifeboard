@@ -3,9 +3,60 @@ import 'dart:convert';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:lifeboard/models/homepad_item_model.dart';
 import 'package:lifeboard/providers/space_provider.dart';
+
+// ── Selected Space Provider ─────────────────────────────────────────
+
+const _homePadSpaceKey = 'homepad_space_id';
+
+/// Manages which space's HomePad is currently displayed.
+/// Persists the selection to SharedPreferences.
+class SelectedHomePadSpaceNotifier extends StateNotifier<String?> {
+  SelectedHomePadSpaceNotifier(this._ref) : super(null) {
+    _init();
+  }
+
+  final Ref _ref;
+
+  Future<void> _init() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedId = prefs.getString(_homePadSpaceKey);
+    final spaces = _ref.read(userSpacesProvider).valueOrNull ?? [];
+
+    if (savedId != null && spaces.any((s) => s.id == savedId)) {
+      state = savedId;
+    } else if (spaces.isNotEmpty) {
+      state = spaces.first.id;
+    }
+
+    // React to space list changes (e.g. user leaves a space)
+    _ref.listen(userSpacesProvider, (_, next) {
+      final currentSpaces = next.valueOrNull ?? [];
+      if (currentSpaces.isEmpty) {
+        state = null;
+        return;
+      }
+      // If current selection is still valid, keep it
+      if (state != null && currentSpaces.any((s) => s.id == state)) return;
+      // Otherwise fall back to first space
+      state = currentSpaces.first.id;
+    });
+  }
+
+  Future<void> select(String spaceId) async {
+    state = spaceId;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_homePadSpaceKey, spaceId);
+  }
+}
+
+final selectedHomePadSpaceProvider =
+    StateNotifierProvider<SelectedHomePadSpaceNotifier, String?>((ref) {
+  return SelectedHomePadSpaceNotifier(ref);
+});
 
 // ── Catalog Provider (static JSON asset) ──────────────────────────
 
@@ -149,19 +200,25 @@ class HomePadActionNotifier extends StateNotifier<AsyncValue<void>> {
     final userId = _userId;
     if (userId == null) return;
 
-    final firestoreService = _ref.read(firestoreServiceProvider);
-    final now = DateTime.now();
-    final updatedItem = item.copyWith(
-      status: 'to_buy',
-      addedBy: userId,
-      addedAt: now,
-      purchasedBy: null,
-      purchasedAt: null,
-    );
-    await firestoreService.addHomePadItem(
-      spaceId: spaceId,
-      item: updatedItem,
-    );
+    state = const AsyncLoading();
+    try {
+      final firestoreService = _ref.read(firestoreServiceProvider);
+      final now = DateTime.now();
+      final updatedItem = item.copyWith(
+        status: 'to_buy',
+        addedBy: userId,
+        addedAt: now,
+        purchasedBy: null,
+        purchasedAt: null,
+      );
+      await firestoreService.addHomePadItem(
+        spaceId: spaceId,
+        item: updatedItem,
+      );
+      state = const AsyncData(null);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+    }
   }
 
   /// Marks an item as purchased.
@@ -172,13 +229,19 @@ class HomePadActionNotifier extends StateNotifier<AsyncValue<void>> {
     final userId = _userId;
     if (userId == null) return;
 
-    final firestoreService = _ref.read(firestoreServiceProvider);
-    await firestoreService.updateHomePadItemStatus(
-      spaceId: spaceId,
-      itemId: itemId,
-      status: 'purchased',
-      userId: userId,
-    );
+    state = const AsyncLoading();
+    try {
+      final firestoreService = _ref.read(firestoreServiceProvider);
+      await firestoreService.updateHomePadItemStatus(
+        spaceId: spaceId,
+        itemId: itemId,
+        status: 'purchased',
+        userId: userId,
+      );
+      state = const AsyncData(null);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+    }
   }
 
   /// Marks an item back to available (removes from to_buy/purchased).
@@ -190,20 +253,26 @@ class HomePadActionNotifier extends StateNotifier<AsyncValue<void>> {
     final userId = _userId;
     if (userId == null) return;
 
-    final firestoreService = _ref.read(firestoreServiceProvider);
-    if (isCustom) {
-      await firestoreService.updateHomePadItemStatus(
-        spaceId: spaceId,
-        itemId: itemId,
-        status: 'available',
-        userId: userId,
-      );
-    } else {
-      // For prebuilt items, delete Firestore doc to return to catalog state
-      await firestoreService.deleteHomePadItem(
-        spaceId: spaceId,
-        itemId: itemId,
-      );
+    state = const AsyncLoading();
+    try {
+      final firestoreService = _ref.read(firestoreServiceProvider);
+      if (isCustom) {
+        await firestoreService.updateHomePadItemStatus(
+          spaceId: spaceId,
+          itemId: itemId,
+          status: 'available',
+          userId: userId,
+        );
+      } else {
+        // For prebuilt items, delete Firestore doc to return to catalog state
+        await firestoreService.deleteHomePadItem(
+          spaceId: spaceId,
+          itemId: itemId,
+        );
+      }
+      state = const AsyncData(null);
+    } catch (e, st) {
+      state = AsyncError(e, st);
     }
   }
 
@@ -215,13 +284,19 @@ class HomePadActionNotifier extends StateNotifier<AsyncValue<void>> {
     final userId = _userId;
     if (userId == null) return;
 
-    final firestoreService = _ref.read(firestoreServiceProvider);
-    await firestoreService.updateHomePadItemStatus(
-      spaceId: spaceId,
-      itemId: itemId,
-      status: 'to_buy',
-      userId: userId,
-    );
+    state = const AsyncLoading();
+    try {
+      final firestoreService = _ref.read(firestoreServiceProvider);
+      await firestoreService.updateHomePadItemStatus(
+        spaceId: spaceId,
+        itemId: itemId,
+        status: 'to_buy',
+        userId: userId,
+      );
+      state = const AsyncData(null);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+    }
   }
 
   /// Marks all "to_buy" items as purchased.
@@ -229,11 +304,19 @@ class HomePadActionNotifier extends StateNotifier<AsyncValue<void>> {
     final userId = _userId;
     if (userId == null) return 0;
 
-    final firestoreService = _ref.read(firestoreServiceProvider);
-    return firestoreService.batchMarkAllDone(
-      spaceId: spaceId,
-      userId: userId,
-    );
+    state = const AsyncLoading();
+    try {
+      final firestoreService = _ref.read(firestoreServiceProvider);
+      final count = await firestoreService.batchMarkAllDone(
+        spaceId: spaceId,
+        userId: userId,
+      );
+      state = const AsyncData(null);
+      return count;
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      return 0;
+    }
   }
 
   /// Adds a custom item to the shopping list.
@@ -247,26 +330,41 @@ class HomePadActionNotifier extends StateNotifier<AsyncValue<void>> {
     final userId = _userId;
     if (userId == null) return;
 
-    final firestoreService = _ref.read(firestoreServiceProvider);
-    final now = DateTime.now();
-    final item = HomePadItem(
-      id: '',
-      name: name,
-      emoji: emoji,
-      category: category.isEmpty ? 'Groceries' : category,
-      isCustom: true,
-      status: addToList ? 'to_buy' : 'available',
-      addedBy: addToList ? userId : null,
-      addedAt: addToList ? now : null,
-      createdAt: now,
-    );
-    await firestoreService.addHomePadItem(spaceId: spaceId, item: item);
+    state = const AsyncLoading();
+    try {
+      final firestoreService = _ref.read(firestoreServiceProvider);
+      final now = DateTime.now();
+      final item = HomePadItem(
+        id: '',
+        name: name,
+        emoji: emoji,
+        category: category.isEmpty ? 'Groceries' : category,
+        isCustom: true,
+        status: addToList ? 'to_buy' : 'available',
+        addedBy: addToList ? userId : null,
+        addedAt: addToList ? now : null,
+        createdAt: now,
+      );
+      await firestoreService.addHomePadItem(spaceId: spaceId, item: item);
+      state = const AsyncData(null);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+    }
   }
 
   /// Clears all purchased items.
   Future<int> clearPurchased({required String spaceId}) async {
-    final firestoreService = _ref.read(firestoreServiceProvider);
-    return firestoreService.clearPurchasedHomePadItems(spaceId: spaceId);
+    state = const AsyncLoading();
+    try {
+      final firestoreService = _ref.read(firestoreServiceProvider);
+      final count = await firestoreService.clearPurchasedHomePadItems(
+          spaceId: spaceId);
+      state = const AsyncData(null);
+      return count;
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      return 0;
+    }
   }
 }
 
