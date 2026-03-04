@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:lifeboard/models/task_model.dart';
+import 'package:lifeboard/providers/activity_provider.dart';
 import 'package:lifeboard/providers/auth_provider.dart';
 import 'package:lifeboard/providers/space_provider.dart';
 
@@ -51,6 +53,10 @@ class TaskNotifier extends StateNotifier<AsyncValue<void>> {
         spaceId: spaceId,
         task: task,
       );
+      // Schedule local reminder if the task has a due date
+      if (created != null && created.dueDate != null) {
+        _scheduleReminder(created);
+      }
       state = const AsyncData(null);
       return created;
     } catch (e, st) {
@@ -74,6 +80,8 @@ class TaskNotifier extends StateNotifier<AsyncValue<void>> {
       // Mark completedAt when moving to done
       if (newStatus == 'done') {
         fields['completedAt'] = Timestamp.fromDate(DateTime.now());
+        // Cancel local reminder when task is completed
+        _cancelReminder(taskId);
       } else {
         fields['completedAt'] = null;
       }
@@ -129,6 +137,7 @@ class TaskNotifier extends StateNotifier<AsyncValue<void>> {
   }) async {
     state = const AsyncLoading();
     try {
+      _cancelReminder(taskId);
       final firestoreService = _ref.read(firestoreServiceProvider);
       await firestoreService.deleteTask(
         spaceId: spaceId,
@@ -137,6 +146,24 @@ class TaskNotifier extends StateNotifier<AsyncValue<void>> {
       state = const AsyncData(null);
     } catch (e, st) {
       state = AsyncError(e, st);
+    }
+  }
+
+  /// Schedules a local notification for a task with a due date.
+  void _scheduleReminder(TaskModel task) {
+    try {
+      _ref.read(notificationServiceProvider).scheduleTaskReminder(task);
+    } catch (e) {
+      debugPrint('[TaskNotifier] Error scheduling reminder: $e');
+    }
+  }
+
+  /// Cancels a local notification for a task.
+  void _cancelReminder(String taskId) {
+    try {
+      _ref.read(notificationServiceProvider).cancelTaskReminder(taskId);
+    } catch (e) {
+      debugPrint('[TaskNotifier] Error cancelling reminder: $e');
     }
   }
 }
