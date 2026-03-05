@@ -161,6 +161,25 @@ final catalogBrowseItemsProvider =
   return mergedAsync.valueOrNull ?? [];
 });
 
+// ── Badge Count Provider ─────────────────────────────────────────
+
+/// Counts "to_buy" items added by other space members (not the current user).
+/// Used for the HomePad tab badge.
+final homePadBadgeCountProvider = Provider<int>((ref) {
+  final userId = FirebaseAuth.instance.currentUser?.uid;
+  if (userId == null) return 0;
+
+  final spaceId = ref.watch(selectedHomePadSpaceProvider);
+  if (spaceId == null) return 0;
+
+  final mergedAsync = ref.watch(homePadMergedItemsProvider(spaceId));
+  final items = mergedAsync.valueOrNull ?? [];
+
+  return items
+      .where((i) => i.status == 'to_buy' && i.addedBy != null && i.addedBy != userId)
+      .length;
+});
+
 // ── UI State Providers ───────────────────────────────────────────
 
 /// Search query for filtering items.

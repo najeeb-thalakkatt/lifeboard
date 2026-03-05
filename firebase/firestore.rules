@@ -101,6 +101,11 @@ service cloud.firestore {
           request.auth.uid in get(/databases/$(database)/documents/spaces/$(spaceId)).data.members;
       }
 
+      // ── HomePad Pending Notifications (managed by Cloud Functions) ──
+      match /homepad_pending_notifications/{docId} {
+        allow read, write: if false;
+      }
+
       // ── Activity (sub-collection) ────────────────────────────
       match /activity/{activityId} {
         allow read: if isAuthenticated() &&

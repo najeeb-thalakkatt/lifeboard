@@ -982,6 +982,22 @@ class _PreferencesCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final pushEnabled = user?.notificationPrefs.pushEnabled ?? true;
     final emailEnabled = user?.notificationPrefs.emailEnabled ?? true;
+    final homePadUpdates = user?.notificationPrefs.homePadUpdates ?? true;
+    final homePadComplete = user?.notificationPrefs.homePadComplete ?? true;
+
+    void savePrefs({
+      bool? push,
+      bool? email,
+      bool? hpUpdates,
+      bool? hpComplete,
+    }) {
+      ref.read(profileActionProvider.notifier).updateNotificationPrefs(
+            pushEnabled: push ?? pushEnabled,
+            emailEnabled: email ?? emailEnabled,
+            homePadUpdates: hpUpdates ?? homePadUpdates,
+            homePadComplete: hpComplete ?? homePadComplete,
+          );
+    }
 
     return Card(
       margin: EdgeInsets.zero,
@@ -1005,12 +1021,7 @@ class _PreferencesCard extends ConsumerWidget {
             icon: Icons.notifications_outlined,
             label: 'Push notifications',
             value: pushEnabled,
-            onChanged: (val) {
-              ref.read(profileActionProvider.notifier).updateNotificationPrefs(
-                    pushEnabled: val,
-                    emailEnabled: emailEnabled,
-                  );
-            },
+            onChanged: (val) => savePrefs(push: val),
           ),
           const Divider(height: 1, indent: 16, endIndent: 16),
 
@@ -1019,12 +1030,29 @@ class _PreferencesCard extends ConsumerWidget {
             icon: Icons.email_outlined,
             label: 'Email notifications',
             value: emailEnabled,
-            onChanged: (val) {
-              ref.read(profileActionProvider.notifier).updateNotificationPrefs(
-                    pushEnabled: pushEnabled,
-                    emailEnabled: val,
-                  );
-            },
+            onChanged: (val) => savePrefs(email: val),
+          ),
+          const Divider(height: 1, indent: 16, endIndent: 16),
+
+          // ── HomePad: Shopping List Updates ─────────────────
+          _CupertinoSwitchRow(
+            icon: Icons.shopping_cart_outlined,
+            label: 'Shopping list updates',
+            value: homePadUpdates && pushEnabled,
+            onChanged: pushEnabled
+                ? (val) => savePrefs(hpUpdates: val)
+                : null,
+          ),
+          const Divider(height: 1, indent: 16, endIndent: 16),
+
+          // ── HomePad: Shopping Complete ─────────────────────
+          _CupertinoSwitchRow(
+            icon: Icons.check_circle_outline,
+            label: 'Shopping complete',
+            value: homePadComplete && pushEnabled,
+            onChanged: pushEnabled
+                ? (val) => savePrefs(hpComplete: val)
+                : null,
           ),
         ],
       ),
@@ -1431,13 +1459,13 @@ class _CupertinoSwitchRow extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.value,
-    required this.onChanged,
+    this.onChanged,
   });
 
   final IconData icon;
   final String label;
   final bool value;
-  final ValueChanged<bool> onChanged;
+  final ValueChanged<bool>? onChanged;
 
   @override
   Widget build(BuildContext context) {

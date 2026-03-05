@@ -18,6 +18,8 @@ class HomePadItemCard extends StatelessWidget {
     this.dismissLabel,
     this.dismissColor,
     this.dismissIcon,
+    this.addedByName,
+    this.purchasedByName,
   });
 
   final HomePadItem item;
@@ -26,6 +28,19 @@ class HomePadItemCard extends StatelessWidget {
   final String? dismissLabel;
   final Color? dismissColor;
   final IconData? dismissIcon;
+  final String? addedByName;
+  final String? purchasedByName;
+
+  String? get _attributionText {
+    final isPurchased = item.status == 'purchased';
+    if (isPurchased && purchasedByName != null) {
+      return 'Bought by $purchasedByName';
+    }
+    if (!isPurchased && addedByName != null) {
+      return 'Added by $addedByName';
+    }
+    return null;
+  }
 
   String _frequencyLabel(String frequency) {
     switch (frequency) {
@@ -148,21 +163,40 @@ class HomePadItemCard extends StatelessWidget {
               Text(item.emoji, style: const TextStyle(fontSize: 20)),
               const SizedBox(width: 8),
 
-              // Item name
+              // Item name + attribution
               Expanded(
-                child: Text(
-                  item.name,
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: isPurchased
-                        ? AppColors.primaryDark.withValues(alpha: 0.4)
-                        : AppColors.primaryDark,
-                    decoration:
-                        isPurchased ? TextDecoration.lineThrough : null,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      item.name,
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: isPurchased
+                            ? AppColors.primaryDark.withValues(alpha: 0.4)
+                            : AppColors.primaryDark,
+                        decoration:
+                            isPurchased ? TextDecoration.lineThrough : null,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (_attributionText != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Text(
+                          _attributionText!,
+                          style: GoogleFonts.inter(
+                            fontSize: 11,
+                            color: AppColors.primaryDark.withValues(alpha: 0.45),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                  ],
                 ),
               ),
               const SizedBox(width: 8),

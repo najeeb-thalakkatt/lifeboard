@@ -323,7 +323,7 @@ $NotificationPrefsCopyWith<$Res> get notificationPrefs {
 /// @nodoc
 mixin _$NotificationPrefs {
 
- bool get pushEnabled; bool get emailEnabled;
+ bool get pushEnabled; bool get emailEnabled; bool get homePadUpdates; bool get homePadComplete;
 /// Create a copy of NotificationPrefs
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -336,16 +336,16 @@ $NotificationPrefsCopyWith<NotificationPrefs> get copyWith => _$NotificationPref
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is NotificationPrefs&&(identical(other.pushEnabled, pushEnabled) || other.pushEnabled == pushEnabled)&&(identical(other.emailEnabled, emailEnabled) || other.emailEnabled == emailEnabled));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is NotificationPrefs&&(identical(other.pushEnabled, pushEnabled) || other.pushEnabled == pushEnabled)&&(identical(other.emailEnabled, emailEnabled) || other.emailEnabled == emailEnabled)&&(identical(other.homePadUpdates, homePadUpdates) || other.homePadUpdates == homePadUpdates)&&(identical(other.homePadComplete, homePadComplete) || other.homePadComplete == homePadComplete));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,pushEnabled,emailEnabled);
+int get hashCode => Object.hash(runtimeType,pushEnabled,emailEnabled,homePadUpdates,homePadComplete);
 
 @override
 String toString() {
-  return 'NotificationPrefs(pushEnabled: $pushEnabled, emailEnabled: $emailEnabled)';
+  return 'NotificationPrefs(pushEnabled: $pushEnabled, emailEnabled: $emailEnabled, homePadUpdates: $homePadUpdates, homePadComplete: $homePadComplete)';
 }
 
 
@@ -356,7 +356,7 @@ abstract mixin class $NotificationPrefsCopyWith<$Res>  {
   factory $NotificationPrefsCopyWith(NotificationPrefs value, $Res Function(NotificationPrefs) _then) = _$NotificationPrefsCopyWithImpl;
 @useResult
 $Res call({
- bool pushEnabled, bool emailEnabled
+ bool pushEnabled, bool emailEnabled, bool homePadUpdates, bool homePadComplete
 });
 
 
@@ -373,10 +373,12 @@ class _$NotificationPrefsCopyWithImpl<$Res>
 
 /// Create a copy of NotificationPrefs
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? pushEnabled = null,Object? emailEnabled = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? pushEnabled = null,Object? emailEnabled = null,Object? homePadUpdates = null,Object? homePadComplete = null,}) {
   return _then(_self.copyWith(
 pushEnabled: null == pushEnabled ? _self.pushEnabled : pushEnabled // ignore: cast_nullable_to_non_nullable
 as bool,emailEnabled: null == emailEnabled ? _self.emailEnabled : emailEnabled // ignore: cast_nullable_to_non_nullable
+as bool,homePadUpdates: null == homePadUpdates ? _self.homePadUpdates : homePadUpdates // ignore: cast_nullable_to_non_nullable
+as bool,homePadComplete: null == homePadComplete ? _self.homePadComplete : homePadComplete // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
 }
@@ -462,10 +464,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool pushEnabled,  bool emailEnabled)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool pushEnabled,  bool emailEnabled,  bool homePadUpdates,  bool homePadComplete)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _NotificationPrefs() when $default != null:
-return $default(_that.pushEnabled,_that.emailEnabled);case _:
+return $default(_that.pushEnabled,_that.emailEnabled,_that.homePadUpdates,_that.homePadComplete);case _:
   return orElse();
 
 }
@@ -483,10 +485,10 @@ return $default(_that.pushEnabled,_that.emailEnabled);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool pushEnabled,  bool emailEnabled)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool pushEnabled,  bool emailEnabled,  bool homePadUpdates,  bool homePadComplete)  $default,) {final _that = this;
 switch (_that) {
 case _NotificationPrefs():
-return $default(_that.pushEnabled,_that.emailEnabled);case _:
+return $default(_that.pushEnabled,_that.emailEnabled,_that.homePadUpdates,_that.homePadComplete);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -503,10 +505,10 @@ return $default(_that.pushEnabled,_that.emailEnabled);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool pushEnabled,  bool emailEnabled)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool pushEnabled,  bool emailEnabled,  bool homePadUpdates,  bool homePadComplete)?  $default,) {final _that = this;
 switch (_that) {
 case _NotificationPrefs() when $default != null:
-return $default(_that.pushEnabled,_that.emailEnabled);case _:
+return $default(_that.pushEnabled,_that.emailEnabled,_that.homePadUpdates,_that.homePadComplete);case _:
   return null;
 
 }
@@ -518,11 +520,13 @@ return $default(_that.pushEnabled,_that.emailEnabled);case _:
 @JsonSerializable()
 
 class _NotificationPrefs implements NotificationPrefs {
-  const _NotificationPrefs({this.pushEnabled = true, this.emailEnabled = true});
+  const _NotificationPrefs({this.pushEnabled = true, this.emailEnabled = true, this.homePadUpdates = true, this.homePadComplete = true});
   factory _NotificationPrefs.fromJson(Map<String, dynamic> json) => _$NotificationPrefsFromJson(json);
 
 @override@JsonKey() final  bool pushEnabled;
 @override@JsonKey() final  bool emailEnabled;
+@override@JsonKey() final  bool homePadUpdates;
+@override@JsonKey() final  bool homePadComplete;
 
 /// Create a copy of NotificationPrefs
 /// with the given fields replaced by the non-null parameter values.
@@ -537,16 +541,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _NotificationPrefs&&(identical(other.pushEnabled, pushEnabled) || other.pushEnabled == pushEnabled)&&(identical(other.emailEnabled, emailEnabled) || other.emailEnabled == emailEnabled));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _NotificationPrefs&&(identical(other.pushEnabled, pushEnabled) || other.pushEnabled == pushEnabled)&&(identical(other.emailEnabled, emailEnabled) || other.emailEnabled == emailEnabled)&&(identical(other.homePadUpdates, homePadUpdates) || other.homePadUpdates == homePadUpdates)&&(identical(other.homePadComplete, homePadComplete) || other.homePadComplete == homePadComplete));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,pushEnabled,emailEnabled);
+int get hashCode => Object.hash(runtimeType,pushEnabled,emailEnabled,homePadUpdates,homePadComplete);
 
 @override
 String toString() {
-  return 'NotificationPrefs(pushEnabled: $pushEnabled, emailEnabled: $emailEnabled)';
+  return 'NotificationPrefs(pushEnabled: $pushEnabled, emailEnabled: $emailEnabled, homePadUpdates: $homePadUpdates, homePadComplete: $homePadComplete)';
 }
 
 
@@ -557,7 +561,7 @@ abstract mixin class _$NotificationPrefsCopyWith<$Res> implements $NotificationP
   factory _$NotificationPrefsCopyWith(_NotificationPrefs value, $Res Function(_NotificationPrefs) _then) = __$NotificationPrefsCopyWithImpl;
 @override @useResult
 $Res call({
- bool pushEnabled, bool emailEnabled
+ bool pushEnabled, bool emailEnabled, bool homePadUpdates, bool homePadComplete
 });
 
 
@@ -574,10 +578,12 @@ class __$NotificationPrefsCopyWithImpl<$Res>
 
 /// Create a copy of NotificationPrefs
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? pushEnabled = null,Object? emailEnabled = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? pushEnabled = null,Object? emailEnabled = null,Object? homePadUpdates = null,Object? homePadComplete = null,}) {
   return _then(_NotificationPrefs(
 pushEnabled: null == pushEnabled ? _self.pushEnabled : pushEnabled // ignore: cast_nullable_to_non_nullable
 as bool,emailEnabled: null == emailEnabled ? _self.emailEnabled : emailEnabled // ignore: cast_nullable_to_non_nullable
+as bool,homePadUpdates: null == homePadUpdates ? _self.homePadUpdates : homePadUpdates // ignore: cast_nullable_to_non_nullable
+as bool,homePadComplete: null == homePadComplete ? _self.homePadComplete : homePadComplete // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
 }

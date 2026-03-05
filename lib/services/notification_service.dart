@@ -380,8 +380,15 @@ class NotificationService {
     final context = navigatorKey?.currentContext;
     if (context == null) return;
 
+    final type = message.data['type'] as String?;
     final spaceId = message.data['spaceId'] as String?;
     final taskId = message.data['taskId'] as String?;
+
+    // HomePad notifications → open HomePad tab
+    if (type == 'homepad_items_added' || type == 'homepad_all_done') {
+      GoRouter.of(context).go('/homepad');
+      return;
+    }
 
     if (spaceId != null && taskId != null) {
       GoRouter.of(context).go('/spaces/$spaceId/task/$taskId');

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:lifeboard/providers/activity_provider.dart';
+import 'package:lifeboard/providers/homepad_provider.dart';
 
 /// Bottom navigation destinations for the app shell.
 ///
@@ -20,6 +21,7 @@ class BottomNavBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final unreadCount = ref.watch(unreadActivityCountProvider).valueOrNull ?? 0;
+    final homePadBadge = ref.watch(homePadBadgeCountProvider);
 
     return NavigationBar(
       selectedIndex: currentIndex,
@@ -35,9 +37,17 @@ class BottomNavBar extends ConsumerWidget {
           selectedIcon: Icon(Icons.calendar_today),
           label: 'This Week',
         ),
-        const NavigationDestination(
-          icon: Icon(Icons.shopping_cart_outlined),
-          selectedIcon: Icon(Icons.shopping_cart),
+        NavigationDestination(
+          icon: Badge(
+            isLabelVisible: homePadBadge > 0,
+            label: Text(homePadBadge > 99 ? '99+' : '$homePadBadge'),
+            child: const Icon(Icons.shopping_cart_outlined),
+          ),
+          selectedIcon: Badge(
+            isLabelVisible: homePadBadge > 0,
+            label: Text(homePadBadge > 99 ? '99+' : '$homePadBadge'),
+            child: const Icon(Icons.shopping_cart),
+          ),
           label: 'HomePad',
         ),
         NavigationDestination(

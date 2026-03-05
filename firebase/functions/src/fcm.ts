@@ -52,6 +52,10 @@ export async function sendFcmToSpaceMembers(
     const prefs = userData.notificationPrefs;
     if (prefs && prefs.pushEnabled === false) continue;
 
+    // Check HomePad-specific sub-toggles
+    if (dataType === "homepad_items_added" && prefs && prefs.homePadUpdates === false) continue;
+    if (dataType === "homepad_all_done" && prefs && prefs.homePadComplete === false) continue;
+
     const userTokens: string[] = userData.fcmTokens || [];
     tokens.push(...userTokens);
   }

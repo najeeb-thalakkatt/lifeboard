@@ -413,11 +413,15 @@ class FirestoreService {
     required String userId,
     required bool pushEnabled,
     required bool emailEnabled,
+    bool homePadUpdates = true,
+    bool homePadComplete = true,
   }) async {
     await _usersRef.doc(userId).update({
       'notificationPrefs': {
         'pushEnabled': pushEnabled,
         'emailEnabled': emailEnabled,
+        'homePadUpdates': homePadUpdates,
+        'homePadComplete': homePadComplete,
       },
     });
   }

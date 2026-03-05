@@ -39,6 +39,12 @@ abstract class UserModel with _$UserModel {
               emailEnabled:
                   (data['notificationPrefs'] as Map)['emailEnabled'] as bool? ??
                       true,
+              homePadUpdates:
+                  (data['notificationPrefs'] as Map)['homePadUpdates'] as bool? ??
+                      true,
+              homePadComplete:
+                  (data['notificationPrefs'] as Map)['homePadComplete'] as bool? ??
+                      true,
             )
           : const NotificationPrefs(),
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
@@ -56,6 +62,8 @@ abstract class UserModel with _$UserModel {
       'notificationPrefs': {
         'pushEnabled': model.notificationPrefs.pushEnabled,
         'emailEnabled': model.notificationPrefs.emailEnabled,
+        'homePadUpdates': model.notificationPrefs.homePadUpdates,
+        'homePadComplete': model.notificationPrefs.homePadComplete,
       },
       'createdAt': Timestamp.fromDate(model.createdAt),
     };
@@ -67,6 +75,8 @@ abstract class NotificationPrefs with _$NotificationPrefs {
   const factory NotificationPrefs({
     @Default(true) bool pushEnabled,
     @Default(true) bool emailEnabled,
+    @Default(true) bool homePadUpdates,
+    @Default(true) bool homePadComplete,
   }) = _NotificationPrefs;
 
   factory NotificationPrefs.fromJson(Map<String, dynamic> json) =>

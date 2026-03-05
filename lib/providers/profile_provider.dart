@@ -198,6 +198,8 @@ class ProfileActionNotifier extends StateNotifier<AsyncValue<void>> {
   Future<void> updateNotificationPrefs({
     required bool pushEnabled,
     required bool emailEnabled,
+    bool homePadUpdates = true,
+    bool homePadComplete = true,
   }) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
@@ -208,6 +210,8 @@ class ProfileActionNotifier extends StateNotifier<AsyncValue<void>> {
         userId: user.uid,
         pushEnabled: pushEnabled,
         emailEnabled: emailEnabled,
+        homePadUpdates: homePadUpdates,
+        homePadComplete: homePadComplete,
       );
     } catch (e, st) {
       state = AsyncError(e, st);

@@ -81,13 +81,18 @@ class _HomePadContentState extends ConsumerState<_HomePadContent> {
   }
 
   @override
+  void deactivate() {
+    // Reset global search/filter state when navigating away.
+    // Must happen in deactivate(), not dispose(), because Riverpod
+    // invalidates ref before dispose() is called during unmount.
+    ref.read(homePadSearchProvider.notifier).state = '';
+    ref.read(homePadCategoryFilterProvider.notifier).state = null;
+    super.deactivate();
+  }
+
+  @override
   void dispose() {
     _searchController.dispose();
-    // Reset global search/filter state when navigating away
-    Future.microtask(() {
-      ref.read(homePadSearchProvider.notifier).state = '';
-      ref.read(homePadCategoryFilterProvider.notifier).state = null;
-    });
     super.dispose();
   }
 
@@ -103,6 +108,7 @@ class _HomePadContentState extends ConsumerState<_HomePadContent> {
     final searchQuery = ref.watch(homePadSearchProvider);
     final categoryFilter = ref.watch(homePadCategoryFilterProvider);
     final isSearchActive = searchQuery.isNotEmpty;
+    final memberProfiles = ref.watch(spaceMemberProfilesProvider(spaceId));
 
     return Scaffold(
       appBar: AppBar(
@@ -136,7 +142,19 @@ class _HomePadContentState extends ConsumerState<_HomePadContent> {
           }
 
           final toBuyItems =
-              filteredItems.where((i) => i.status == 'to_buy').toList();
+              filteredItems.where((i) => i.status == 'to_buy').toList()
+                ..sort((a, b) {
+                  const freqOrder = {
+                    'weekly': 0,
+                    'biweekly': 1,
+                    'monthly': 2,
+                    'as_needed': 3,
+                  };
+                  final aFreq = freqOrder[a.frequency] ?? 3;
+                  final bFreq = freqOrder[b.frequency] ?? 3;
+                  if (aFreq != bFreq) return aFreq.compareTo(bFreq);
+                  return a.name.compareTo(b.name);
+                });
           final purchasedItems =
               filteredItems.where((i) => i.status == 'purchased').toList()
                 ..sort((a, b) {
@@ -225,21 +243,14 @@ class _HomePadContentState extends ConsumerState<_HomePadContent> {
                         index: index,
                         child: HomePadItemCard(
                           item: item,
+                          addedByName: item.addedBy != null
+                              ? memberProfiles[item.addedBy]
+                              : null,
                           onTogglePurchased: () {
-                            ref
-                                .read(homePadActionProvider.notifier)
-                                .markPurchased(
-                                  spaceId: spaceId,
-                                  itemId: item.id,
-                                );
+                            _markPurchasedWithUndo(context, item);
                           },
                           onDismissed: () {
-                            ref
-                                .read(homePadActionProvider.notifier)
-                                .markPurchased(
-                                  spaceId: spaceId,
-                                  itemId: item.id,
-                                );
+                            _markPurchasedWithUndo(context, item);
                           },
                         ),
                       );
@@ -315,6 +326,9 @@ class _HomePadContentState extends ConsumerState<_HomePadContent> {
                         final item = purchasedItems[index];
                         return HomePadItemCard(
                           item: item,
+                          purchasedByName: item.purchasedBy != null
+                              ? memberProfiles[item.purchasedBy]
+                              : null,
                           dismissLabel: 'Remove',
                           dismissColor: Colors.orange.shade700,
                           dismissIcon: Icons.remove_circle_outline,
@@ -428,6 +442,28 @@ class _HomePadContentState extends ConsumerState<_HomePadContent> {
         _clearSearchAndFilters();
       }
     });
+  }
+
+  void _markPurchasedWithUndo(BuildContext context, HomePadItem item) {
+    ref
+        .read(homePadActionProvider.notifier)
+        .markPurchased(spaceId: spaceId, itemId: item.id);
+
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('${item.emoji} ${item.name} marked as bought'),
+        duration: const Duration(seconds: 4),
+        action: SnackBarAction(
+          label: 'Undo',
+          onPressed: () {
+            ref
+                .read(homePadActionProvider.notifier)
+                .reAddToBuy(spaceId: spaceId, itemId: item.id);
+          },
+        ),
+      ),
+    );
   }
 
   Future<void> _markAllDone(

@@ -39,10 +39,14 @@ _NotificationPrefs _$NotificationPrefsFromJson(Map<String, dynamic> json) =>
     _NotificationPrefs(
       pushEnabled: json['pushEnabled'] as bool? ?? true,
       emailEnabled: json['emailEnabled'] as bool? ?? true,
+      homePadUpdates: json['homePadUpdates'] as bool? ?? true,
+      homePadComplete: json['homePadComplete'] as bool? ?? true,
     );
 
 Map<String, dynamic> _$NotificationPrefsToJson(_NotificationPrefs instance) =>
     <String, dynamic>{
       'pushEnabled': instance.pushEnabled,
       'emailEnabled': instance.emailEnabled,
+      'homePadUpdates': instance.homePadUpdates,
+      'homePadComplete': instance.homePadComplete,
     };
