@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:lifeboard/models/comment_model.dart';
 import 'package:lifeboard/providers/auth_provider.dart';
 import 'package:lifeboard/providers/comment_provider.dart';
+import 'package:lifeboard/providers/space_provider.dart';
 import 'package:lifeboard/theme/app_colors.dart';
 import 'package:lifeboard/theme/app_text_styles.dart';
 import 'package:lifeboard/widgets/avatar_widget.dart';
@@ -70,6 +71,7 @@ class _CommentsSectionState extends ConsumerState<CommentsSection> {
       taskCommentsProvider((spaceId: widget.spaceId, taskId: widget.taskId)),
     );
     final currentUser = ref.watch(currentUserProvider).valueOrNull;
+    final memberNames = ref.watch(spaceMemberProfilesProvider(widget.spaceId));
     final colors = Theme.of(context).colorScheme;
 
     return Column(
@@ -138,6 +140,7 @@ class _CommentsSectionState extends ConsumerState<CommentsSection> {
                     FirebaseAuth.instance.currentUser?.uid ?? '',
                 currentUserName: currentUser?.displayName,
                 currentUserPhoto: currentUser?.photoUrl,
+                memberNames: memberNames,
                 onToggleReaction: (emoji) =>
                     _toggleReaction(comments[i].id, emoji),
               ),
@@ -162,6 +165,7 @@ class _CommentBubble extends StatelessWidget {
     required this.currentUserId,
     this.currentUserName,
     this.currentUserPhoto,
+    required this.memberNames,
     required this.onToggleReaction,
   });
 
@@ -169,6 +173,7 @@ class _CommentBubble extends StatelessWidget {
   final String currentUserId;
   final String? currentUserName;
   final String? currentUserPhoto;
+  final Map<String, String> memberNames;
   final ValueChanged<String> onToggleReaction;
 
   String _relativeTime(DateTime dt) {
@@ -188,7 +193,7 @@ class _CommentBubble extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         AvatarWidget(
-          name: isMe ? (currentUserName ?? 'Me') : comment.authorId,
+          name: isMe ? (currentUserName ?? 'Me') : (memberNames[comment.authorId] ?? 'Member'),
           imageUrl: isMe ? currentUserPhoto : null,
           radius: 16,
         ),
@@ -200,7 +205,7 @@ class _CommentBubble extends StatelessWidget {
               Row(
                 children: [
                   Text(
-                    isMe ? 'You' : _shortName(comment.authorId),
+                    isMe ? 'You' : (memberNames[comment.authorId] ?? _shortName(comment.authorId)),
                     style: AppTextStyles.caption.copyWith(
                       fontWeight: FontWeight.w600,
                       color: colors.primary,

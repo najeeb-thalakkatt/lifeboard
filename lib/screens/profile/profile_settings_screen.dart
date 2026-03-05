@@ -8,7 +8,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:image_picker/image_picker.dart';
 
 import 'package:lifeboard/core/constants.dart';
 import 'package:lifeboard/core/errors/app_exceptions.dart';
@@ -17,6 +16,7 @@ import 'package:lifeboard/models/user_model.dart';
 import 'package:lifeboard/providers/auth_provider.dart';
 import 'package:lifeboard/providers/profile_provider.dart';
 import 'package:lifeboard/providers/space_provider.dart';
+import 'package:lifeboard/services/storage_service.dart';
 import 'package:lifeboard/theme/app_colors.dart';
 import 'package:lifeboard/theme/app_text_styles.dart';
 import 'package:lifeboard/widgets/avatar_widget.dart';
@@ -184,31 +184,28 @@ class _ProfileCardState extends ConsumerState<_ProfileCard> {
   }
 
   Future<void> _pickAndUploadPhoto() async {
-    final picker = ImagePicker();
-    final image = await picker.pickImage(
-      source: ImageSource.gallery,
-      maxWidth: 512,
-      maxHeight: 512,
-      imageQuality: 80,
-    );
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId == null) return;
+
+    final storageService = this.ref.read(storageServiceProvider);
+    final image = await storageService.pickImageFromGallery();
     if (image == null) return;
-
-    final userId = FirebaseAuth.instance.currentUser!.uid;
-    final ref = FirebaseStorage.instance
-        .ref('users/$userId/profile_photo.jpg');
-
-    UploadTask uploadTask;
-    if (kIsWeb) {
-      final bytes = await image.readAsBytes();
-      uploadTask = ref.putData(bytes, SettableMetadata(contentType: 'image/jpeg'));
-    } else {
-      uploadTask = ref.putFile(File(image.path));
-    }
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Uploading photo...')),
     );
+
+    final storageRef = FirebaseStorage.instance
+        .ref('users/$userId/profile_photo.jpg');
+
+    UploadTask uploadTask;
+    if (kIsWeb) {
+      final bytes = await image.readAsBytes();
+      uploadTask = storageRef.putData(bytes, SettableMetadata(contentType: 'image/jpeg'));
+    } else {
+      uploadTask = storageRef.putFile(File(image.path));
+    }
 
     final snapshot = await uploadTask;
     final url = await snapshot.ref.getDownloadURL();
@@ -975,7 +972,7 @@ class _SpaceTile extends ConsumerWidget {
 
 class _PreferencesCard extends ConsumerWidget {
   const _PreferencesCard({required this.user, required this.themeMode});
-  final dynamic user;
+  final UserModel? user;
   final ThemeMode themeMode;
 
   @override
@@ -1064,7 +1061,7 @@ class _PreferencesCard extends ConsumerWidget {
 
 class _AccountActionsCard extends ConsumerWidget {
   const _AccountActionsCard({required this.user});
-  final dynamic user;
+  final UserModel? user;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

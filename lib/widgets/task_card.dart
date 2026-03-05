@@ -242,7 +242,8 @@ class _DueDateChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isOverdue = date.isBefore(DateTime.now());
+    final now = DateTime.now();
+    final isOverdue = date.isBefore(DateTime(now.year, now.month, now.day));
     final colors = Theme.of(context).colorScheme;
     final color = isOverdue ? colors.error : colors.primary;
 

@@ -45,13 +45,9 @@ service cloud.firestore {
     // ── Spaces ────────────────────────────────────────────────
 
     match /spaces/{spaceId} {
-      // Any authenticated user can read spaces.
-      // NOTE: This is required because joinSpace() queries by inviteCode, which
-      // needs read access to non-member spaces. Firestore rules cannot inspect
-      // query where-clauses. To fully restrict, move invite-code lookup to a
-      // Cloud Function. Low-risk for this app: exposed data is space name,
-      // member IDs, and invite code.
-      allow read: if isAuthenticated();
+      // Only space members can read space documents.
+      // Invite-code lookup is handled by the lookupInviteCode Cloud Function.
+      allow read: if isSpaceMember(spaceId);
 
       // Any authenticated user can create a space (they become the owner).
       allow create: if isAuthenticated() && willBeSpaceMember(spaceId);

@@ -114,7 +114,7 @@ class _HomePadCategorySectionState extends State<HomePadCategorySection>
                       style: GoogleFonts.nunito(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: AppColors.primaryDark,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                   ),
@@ -122,7 +122,7 @@ class _HomePadCategorySectionState extends State<HomePadCategorySection>
                     '${widget.items.length}',
                     style: GoogleFonts.inter(
                       fontSize: 12,
-                      color: AppColors.primaryDark.withValues(alpha: 0.5),
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -130,7 +130,7 @@ class _HomePadCategorySectionState extends State<HomePadCategorySection>
                     turns: _chevronRotation,
                     child: Icon(
                       Icons.expand_more,
-                      color: AppColors.primaryDark.withValues(alpha: 0.5),
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
                     ),
                   ),
                 ],
@@ -155,7 +155,7 @@ class _HomePadCategorySectionState extends State<HomePadCategorySection>
                       style: GoogleFonts.inter(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.primaryDark.withValues(alpha: 0.4),
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -215,7 +215,7 @@ class _CatalogItemRow extends StatelessWidget {
                   style: GoogleFonts.inter(
                     fontSize: 14,
                     fontWeight: isToBuy ? FontWeight.w600 : FontWeight.normal,
-                    color: AppColors.primaryDark,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
               ),
@@ -227,7 +227,7 @@ class _CatalogItemRow extends StatelessWidget {
                         : Icons.add_circle_outline,
                 color: isToBuy
                     ? AppColors.statusDone
-                    : AppColors.primaryDark.withValues(alpha: isPurchased ? 0.2 : 0.4),
+                    : Theme.of(context).colorScheme.onSurface.withValues(alpha: isPurchased ? 0.2 : 0.4),
                 size: 22,
               ),
               const SizedBox(width: 8),

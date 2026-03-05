@@ -1,11 +1,5 @@
 import * as functions from "firebase-functions";
-import * as admin from "firebase-admin";
-
-if (!admin.apps.length) {
-  admin.initializeApp();
-}
-
-const db = admin.firestore();
+import {admin, db} from "./admin";
 
 /**
  * HTTP Cloud Function to send a test push notification.

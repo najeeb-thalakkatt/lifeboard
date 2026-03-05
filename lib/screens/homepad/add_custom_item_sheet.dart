@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:lifeboard/providers/homepad_provider.dart';
-import 'package:lifeboard/theme/app_colors.dart';
 import 'package:lifeboard/theme/app_text_styles.dart';
 
 /// Bottom sheet for adding a custom HomePad item.
@@ -72,7 +71,7 @@ class _AddCustomItemSheetState extends ConsumerState<AddCustomItemSheet> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -113,13 +112,13 @@ class _AddCustomItemSheetState extends ConsumerState<AddCustomItemSheet> {
                     height: 40,
                     decoration: BoxDecoration(
                       color: isSelected
-                          ? AppColors.primaryDark.withValues(alpha: 0.1)
+                          ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)
                           : Colors.transparent,
                       borderRadius: BorderRadius.circular(8),
                       border: isSelected
-                          ? Border.all(color: AppColors.primaryDark, width: 2)
+                          ? Border.all(color: Theme.of(context).colorScheme.primary, width: 2)
                           : Border.all(
-                              color: Colors.grey.shade300, width: 1),
+                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.2), width: 1),
                     ),
                     alignment: Alignment.center,
                     child: Text(emoji, style: const TextStyle(fontSize: 20)),
@@ -152,10 +151,10 @@ class _AddCustomItemSheetState extends ConsumerState<AddCustomItemSheet> {
                   style: GoogleFonts.inter(fontSize: 14)),
               subtitle: Text('Mark as "To Buy" immediately',
                   style: GoogleFonts.inter(
-                      fontSize: 12, color: Colors.grey.shade600)),
+                      fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5))),
               value: _addToList,
               onChanged: (val) => setState(() => _addToList = val),
-              activeTrackColor: AppColors.primaryDark,
+              activeTrackColor: Theme.of(context).colorScheme.primary,
             ),
             const SizedBox(height: 16),
 

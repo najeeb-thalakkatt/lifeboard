@@ -2,7 +2,8 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
     match /spaces/{spaceId}/tasks/{taskId}/{allPaths=**} {
-      allow read, write: if request.auth != null;
+      allow read, write: if request.auth != null
+        && firestore.get(/databases/(default)/documents/spaces/$(spaceId)).data.members[request.auth.uid] != null;
     }
     match /users/{userId}/{allPaths=**} {
       allow read: if request.auth != null;

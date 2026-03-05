@@ -130,7 +130,7 @@ class _AddItemSheetState extends ConsumerState<AddItemSheet> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -197,7 +197,7 @@ class _AddItemSheetState extends ConsumerState<AddItemSheet> {
         'Start typing to search the catalog...',
         style: GoogleFonts.inter(
           fontSize: 14,
-          color: AppColors.primaryDark.withValues(alpha: 0.5),
+          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
         ),
       ),
     );
@@ -219,7 +219,7 @@ class _AddItemSheetState extends ConsumerState<AddItemSheet> {
                 style: GoogleFonts.nunito(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
-                  color: AppColors.primaryDark.withValues(alpha: 0.6),
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
               ),
             ),
@@ -257,7 +257,7 @@ class _AddItemSheetState extends ConsumerState<AddItemSheet> {
                   item.name,
                   style: GoogleFonts.inter(
                     fontSize: 15,
-                    color: AppColors.primaryDark,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
               ),
@@ -270,7 +270,7 @@ class _AddItemSheetState extends ConsumerState<AddItemSheet> {
               else
                 Icon(
                   Icons.add_circle_outline,
-                  color: AppColors.primaryDark.withValues(alpha: 0.4),
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
                   size: 22,
                 ),
             ],
@@ -294,7 +294,7 @@ class _AddItemSheetState extends ConsumerState<AddItemSheet> {
             style: GoogleFonts.nunito(
               fontSize: 15,
               fontWeight: FontWeight.bold,
-              color: AppColors.primaryDark,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
             textAlign: TextAlign.center,
           ),
@@ -337,20 +337,20 @@ class _AddItemSheetState extends ConsumerState<AddItemSheet> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.primaryDark.withValues(alpha: 0.05),
+                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.info_outline,
-                      size: 18, color: AppColors.primaryDark),
+                  Icon(Icons.info_outline,
+                      size: 18, color: Theme.of(context).colorScheme.primary),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Adding "${_searchController.text.trim()}" as a custom item',
                       style: GoogleFonts.inter(
                         fontSize: 13,
-                        color: AppColors.primaryDark,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                   ),
@@ -377,12 +377,12 @@ class _AddItemSheetState extends ConsumerState<AddItemSheet> {
                     height: 40,
                     decoration: BoxDecoration(
                       color: isSelected
-                          ? AppColors.primaryDark.withValues(alpha: 0.1)
+                          ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)
                           : Colors.transparent,
                       borderRadius: BorderRadius.circular(8),
                       border: isSelected
-                          ? Border.all(color: AppColors.primaryDark, width: 2)
-                          : Border.all(color: Colors.grey.shade300, width: 1),
+                          ? Border.all(color: Theme.of(context).colorScheme.primary, width: 2)
+                          : Border.all(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.2), width: 1),
                     ),
                     alignment: Alignment.center,
                     child: Text(emoji, style: const TextStyle(fontSize: 20)),

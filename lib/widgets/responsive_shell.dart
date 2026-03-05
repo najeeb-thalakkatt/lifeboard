@@ -53,7 +53,11 @@ class ResponsiveShell extends StatelessWidget {
   }
 
   void _onNavigate(BuildContext context, int index) {
-    context.go(_paths[index]);
+    // If already on a sub-route of the target path, don't re-navigate
+    // to the parent (avoids the redirect spinner on Spaces tab).
+    final target = _paths[index];
+    if (currentLocation.startsWith('$target/')) return;
+    context.go(target);
   }
 
   @override

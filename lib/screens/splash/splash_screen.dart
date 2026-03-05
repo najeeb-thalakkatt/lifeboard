@@ -26,8 +26,10 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final ext = Theme.of(context).extension<AppColorsExtension>()!;
-    final bgColor = ext.scaffold;
+    final colors = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = AppColors.background;
+    final textColor = isDark ? colors.onSurface : Colors.white;
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -46,7 +48,7 @@ class _SplashScreenState extends State<SplashScreen> {
               style: GoogleFonts.nunito(
                 fontSize: 36,
                 fontWeight: FontWeight.w700,
-                color: Colors.white,
+                color: textColor,
                 letterSpacing: 2,
               ),
             ),
@@ -56,7 +58,7 @@ class _SplashScreenState extends State<SplashScreen> {
               style: GoogleFonts.nunito(
                 fontSize: 16,
                 fontWeight: FontWeight.w400,
-                color: Colors.white.withValues(alpha: 0.85),
+                color: textColor.withValues(alpha: 0.85),
                 letterSpacing: 1,
               ),
             ),

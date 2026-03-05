@@ -11,7 +11,7 @@ import 'package:lifeboard/providers/space_provider.dart';
 
 /// Holds the current [ThemeMode] and persists it via SharedPreferences.
 class ThemeModeNotifier extends StateNotifier<ThemeMode> {
-  ThemeModeNotifier() : super(ThemeMode.light) {
+  ThemeModeNotifier() : super(ThemeMode.system) {
     _loadFromPrefs();
   }
 

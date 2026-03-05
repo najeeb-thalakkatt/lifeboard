@@ -1,17 +1,41 @@
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mocktail/mocktail.dart';
 
 import 'package:lifeboard/models/space_model.dart';
 import 'package:lifeboard/core/errors/app_exceptions.dart';
 import 'package:lifeboard/services/firestore_service.dart';
 
+class MockFirebaseFunctions extends Mock implements FirebaseFunctions {}
+
+class MockHttpsCallable extends Mock implements HttpsCallable {}
+
+class MockHttpsCallableResult extends Mock
+    implements HttpsCallableResult<dynamic> {
+  MockHttpsCallableResult(this._data);
+  final dynamic _data;
+
+  @override
+  dynamic get data => _data;
+}
+
 void main() {
   late FakeFirebaseFirestore fakeFirestore;
+  late MockFirebaseFunctions mockFunctions;
+  late MockHttpsCallable mockCallable;
   late FirestoreService service;
 
   setUp(() {
     fakeFirestore = FakeFirebaseFirestore();
-    service = FirestoreService(firestore: fakeFirestore);
+    mockFunctions = MockFirebaseFunctions();
+    mockCallable = MockHttpsCallable();
+    when(() => mockFunctions.httpsCallable('lookupInviteCode'))
+        .thenReturn(mockCallable);
+    service = FirestoreService(
+      firestore: fakeFirestore,
+      functions: mockFunctions,
+    );
   });
 
   group('createSpace', () {
@@ -87,6 +111,11 @@ void main() {
     });
 
     test('joins a space with valid invite code', () async {
+      when(() => mockCallable.call<dynamic>(any()))
+          .thenAnswer((_) async => MockHttpsCallableResult(
+                {'spaceId': createdSpace.id},
+              ));
+
       final joinedSpace = await service.joinSpace(
         inviteCode: createdSpace.inviteCode,
         userId: 'joiner1',
@@ -98,6 +127,11 @@ void main() {
     });
 
     test('adds spaceId to joiner user document', () async {
+      when(() => mockCallable.call<dynamic>(any()))
+          .thenAnswer((_) async => MockHttpsCallableResult(
+                {'spaceId': createdSpace.id},
+              ));
+
       await service.joinSpace(
         inviteCode: createdSpace.inviteCode,
         userId: 'joiner1',
@@ -110,6 +144,9 @@ void main() {
     });
 
     test('throws SpaceNotFoundException for invalid code', () async {
+      when(() => mockCallable.call<dynamic>(any()))
+          .thenThrow(FirebaseFunctionsException(code: 'not-found', message: 'Not found'));
+
       expect(
         () => service.joinSpace(
           inviteCode: 'ZZZZZZ',
@@ -120,7 +157,9 @@ void main() {
     });
 
     test('throws AlreadyMemberException if already a member', () async {
-      // Owner tries to join their own space
+      when(() => mockCallable.call<dynamic>(any()))
+          .thenThrow(FirebaseFunctionsException(code: 'already-exists', message: 'Already a member'));
+
       expect(
         () => service.joinSpace(
           inviteCode: createdSpace.inviteCode,

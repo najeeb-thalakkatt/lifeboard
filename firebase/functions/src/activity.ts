@@ -1,12 +1,6 @@
 import * as functions from "firebase-functions";
-import * as admin from "firebase-admin";
+import {admin, db} from "./admin";
 import {sendFcmToSpaceMembers} from "./fcm";
-
-if (!admin.apps.length) {
-  admin.initializeApp();
-}
-
-const db = admin.firestore();
 
 /** Status labels matching the Flutter app's warm language. */
 const STATUS_LABELS: Record<string, string> = {
@@ -29,7 +23,7 @@ export const onTaskWrite = functions.firestore
     // Task deleted — skip activity for now
     if (!after) return;
 
-    const actorId: string = after.createdBy || "";
+    const actorId: string = after.updatedBy || after.createdBy || "";
     const taskTitle: string = after.title || "a task";
 
     let activityType: string;
@@ -40,6 +34,16 @@ export const onTaskWrite = functions.firestore
       activityType = "task_created";
       message = `created "${taskTitle}"`;
     } else if (before.status !== after.status) {
+      // Skip activity for recurring task auto-resets (done → todo)
+      if (
+        before.status === "done" &&
+        after.recurrenceRule &&
+        after.recurrenceRule !== "never" &&
+        after.status === "todo"
+      ) {
+        return;
+      }
+
       // Status changed
       if (after.status === "done") {
         activityType = "task_completed";
@@ -77,7 +81,7 @@ export const onTaskWrite = functions.firestore
     // Send FCM to other space members
     await sendFcmToSpaceMembers(spaceId, actorId, message, "activity", taskId);
 
-    // ── Recurring task: auto-create next occurrence on completion ──
+    // ── Recurring task: reset same task for next occurrence ──
     if (
       activityType === "task_completed" &&
       after.recurrenceRule &&
@@ -88,41 +92,27 @@ export const onTaskWrite = functions.firestore
         after.recurrenceRule
       );
 
-      const newTaskData: Record<string, unknown> = {
-        title: after.title,
-        description: after.description || null,
+      const resetFields: Record<string, unknown> = {
         status: "todo",
-        boardId: after.boardId,
-        assignees: after.assignees || [],
+        completedAt: null,
+        lastCompletedAt: admin.firestore.FieldValue.serverTimestamp(),
         dueDate: nextDue
           ? admin.firestore.Timestamp.fromDate(nextDue)
           : null,
-        emojiTag: after.emojiTag || null,
-        subtasks: (after.subtasks || []).map(
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      };
+
+      // Reset subtask checkboxes
+      if (after.subtasks && after.subtasks.length > 0) {
+        resetFields.subtasks = after.subtasks.map(
           (s: {id: string; title: string}) => ({
             ...s,
             completed: false,
           })
-        ),
-        attachments: [],
-        isWeeklyTask: false,
-        weekStart: null,
-        order: 0,
-        completedAt: null,
-        archivedAt: null,
-        isBlocked: false,
-        blockedReason: null,
-        recurrenceRule: after.recurrenceRule,
-        createdBy: actorId,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      };
+        );
+      }
 
-      await db
-        .collection("spaces")
-        .doc(spaceId)
-        .collection("tasks")
-        .add(newTaskData);
+      await change.after.ref.update(resetFields);
     }
   });
 

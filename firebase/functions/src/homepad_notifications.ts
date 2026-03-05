@@ -1,12 +1,6 @@
 import * as functions from "firebase-functions";
-import * as admin from "firebase-admin";
+import {admin, db} from "./admin";
 import {sendFcmToSpaceMembers} from "./fcm";
-
-if (!admin.apps.length) {
-  admin.initializeApp();
-}
-
-const db = admin.firestore();
 
 /**
  * Triggered when a HomePad item is written (created or updated).
@@ -152,8 +146,8 @@ export const flushHomePadNotifications = functions.pubsub
       if (items.length === 1) {
         message = `added ${items[0]} to HomePad`;
       } else if (items.length <= 3) {
-        const last = items.pop()!;
-        message = `added ${items.join(", ")}, and ${last} to HomePad`;
+        const last = items[items.length - 1];
+        message = `added ${items.slice(0, -1).join(", ")}, and ${last} to HomePad`;
       } else {
         const preview = items.slice(0, 3).join(", ");
         message = `added ${items.length} items to HomePad: ${preview}...`;

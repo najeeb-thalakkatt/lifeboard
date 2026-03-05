@@ -11,11 +11,51 @@ const _lastSpaceKey = 'last_space_id';
 
 /// Home dashboard — auto-redirects to the last visited space's board,
 /// or the first space if no preference is saved.
-class HomeDashboardScreen extends ConsumerWidget {
+class HomeDashboardScreen extends ConsumerStatefulWidget {
   const HomeDashboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeDashboardScreen> createState() =>
+      _HomeDashboardScreenState();
+}
+
+class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
+  bool _hasRedirected = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // If data is already cached (e.g. coming from another tab), redirect
+    // immediately without waiting for the next stream event.
+    final existing = ref.read(userSpacesProvider).valueOrNull;
+    if (existing != null && existing.isNotEmpty) {
+      _hasRedirected = true;
+      _redirect(existing);
+    }
+    ref.listenManual(userSpacesProvider, (_, next) {
+      if (_hasRedirected) return;
+      final spaces = next.valueOrNull;
+      if (spaces == null || spaces.isEmpty) return;
+
+      _hasRedirected = true;
+      _redirect(spaces);
+    });
+  }
+
+  Future<void> _redirect(List spaces) async {
+    final prefs = await SharedPreferences.getInstance();
+    final lastSpaceId = prefs.getString(_lastSpaceKey);
+    final targetSpace = (lastSpaceId != null &&
+            spaces.any((s) => s.id == lastSpaceId))
+        ? lastSpaceId
+        : spaces.first.id;
+    if (mounted) {
+      context.go('/spaces/$targetSpace');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final spacesAsync = ref.watch(userSpacesProvider);
 
     return spacesAsync.when(
@@ -33,22 +73,8 @@ class HomeDashboardScreen extends ConsumerWidget {
           return const Scaffold(body: _EmptySpacesView());
         }
 
-        // Redirect to last visited space (or first if none saved)
-        WidgetsBinding.instance.addPostFrameCallback((_) async {
-          if (!context.mounted) return;
-          final prefs = await SharedPreferences.getInstance();
-          final lastSpaceId = prefs.getString(_lastSpaceKey);
-          final targetSpace = (lastSpaceId != null &&
-                  spaces.any((s) => s.id == lastSpaceId))
-              ? lastSpaceId
-              : spaces.first.id;
-          if (context.mounted) {
-            context.go('/spaces/$targetSpace');
-          }
-        });
-
         return const Scaffold(
-          body: Center(child: CircularProgressIndicator()),
+          body: SizedBox.shrink(),
         );
       },
     );

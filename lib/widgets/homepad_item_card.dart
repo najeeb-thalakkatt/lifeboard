@@ -114,7 +114,7 @@ class HomePadItemCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: isPurchased
                       ? AppColors.statusDone
-                      : AppColors.primaryDark,
+                      : Theme.of(context).colorScheme.primary,
                   borderRadius: const BorderRadius.only(
                     topLeft: Radius.circular(10),
                     bottomLeft: Radius.circular(10),
@@ -146,7 +146,7 @@ class HomePadItemCard extends StatelessWidget {
                         border: Border.all(
                           color: isPurchased
                               ? AppColors.statusDone
-                              : AppColors.primaryDark.withValues(alpha: 0.3),
+                              : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
                           width: 2,
                         ),
                       ),
@@ -175,8 +175,8 @@ class HomePadItemCard extends StatelessWidget {
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
                         color: isPurchased
-                            ? AppColors.primaryDark.withValues(alpha: 0.4)
-                            : AppColors.primaryDark,
+                            ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4)
+                            : Theme.of(context).colorScheme.onSurface,
                         decoration:
                             isPurchased ? TextDecoration.lineThrough : null,
                       ),
@@ -190,7 +190,7 @@ class HomePadItemCard extends StatelessWidget {
                           _attributionText!,
                           style: GoogleFonts.inter(
                             fontSize: 11,
-                            color: AppColors.primaryDark.withValues(alpha: 0.45),
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45),
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/foundation.dart';
 
 import 'package:lifeboard/core/constants.dart';
@@ -15,10 +16,14 @@ import 'package:lifeboard/models/task_model.dart';
 
 /// Wraps Firestore operations for spaces (and later boards/tasks).
 class FirestoreService {
-  FirestoreService({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+  FirestoreService({FirebaseFirestore? firestore, FirebaseFunctions? functions})
+      : _firestore = firestore ?? FirebaseFirestore.instance,
+        _functions = functions;
 
   final FirebaseFirestore _firestore;
+  final FirebaseFunctions? _functions;
+
+  FirebaseFunctions get _fn => _functions ?? FirebaseFunctions.instance;
 
   // ── Collection References ──────────────────────────────────
 
@@ -82,31 +87,32 @@ class FirestoreService {
   }
 
   /// Joins an existing space using an [inviteCode].
+  /// Uses a Cloud Function to look up the invite code securely,
+  /// then updates membership on the resolved space document.
   /// Returns the joined [SpaceModel] or throws if the code is invalid.
   Future<SpaceModel> joinSpace({
     required String inviteCode,
     required String userId,
   }) async {
-    final query = await _spacesRef
-        .where('inviteCode', isEqualTo: inviteCode.toUpperCase())
-        .limit(1)
-        .get();
-
-    if (query.docs.isEmpty) {
-      throw const SpaceNotFoundException();
+    // Look up space ID via Cloud Function (avoids needing broad read access)
+    final callable = _fn.httpsCallable('lookupInviteCode');
+    final HttpsCallableResult result;
+    try {
+      result = await callable.call({'inviteCode': inviteCode.toUpperCase()});
+    } on FirebaseFunctionsException catch (e) {
+      if (e.code == 'not-found') {
+        throw const SpaceNotFoundException();
+      } else if (e.code == 'already-exists') {
+        throw const AlreadyMemberException();
+      }
+      rethrow;
     }
 
-    final doc = query.docs.first;
-    final space = SpaceModel.fromFirestore(doc);
-
-    // Check if user is already a member
-    if (space.members.containsKey(userId)) {
-      throw const AlreadyMemberException();
-    }
+    final spaceId = result.data['spaceId'] as String;
 
     // Add user as a member
     final now = DateTime.now();
-    await doc.reference.update({
+    await _spacesRef.doc(spaceId).update({
       'members.$userId': {
         'role': 'member',
         'joinedAt': Timestamp.fromDate(now),
@@ -114,15 +120,12 @@ class FirestoreService {
     });
 
     await _usersRef.doc(userId).set({
-      'spaceIds': FieldValue.arrayUnion([doc.id]),
+      'spaceIds': FieldValue.arrayUnion([spaceId]),
     }, SetOptions(merge: true));
 
-    return space.copyWith(
-      members: {
-        ...space.members,
-        userId: SpaceMember(role: 'member', joinedAt: now),
-      },
-    );
+    // Fetch the updated space document
+    final doc = await _spacesRef.doc(spaceId).get();
+    return SpaceModel.fromFirestore(doc);
   }
 
   /// Streams all spaces the [userId] belongs to.
@@ -209,12 +212,18 @@ class FirestoreService {
   }
 
   /// Partially updates a task.
+  /// [updatedBy] is written so Cloud Functions can attribute the action
+  /// to the correct user (not the original creator).
   Future<void> updateTask({
     required String spaceId,
     required String taskId,
     required Map<String, dynamic> fields,
+    String? updatedBy,
   }) async {
     fields['updatedAt'] = Timestamp.fromDate(DateTime.now());
+    if (updatedBy != null) {
+      fields['updatedBy'] = updatedBy;
+    }
     await _tasksRef(spaceId).doc(taskId).update(fields);
   }
 

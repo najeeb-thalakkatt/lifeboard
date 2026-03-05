@@ -1,12 +1,6 @@
 import * as functions from "firebase-functions";
-import * as admin from "firebase-admin";
+import {admin, db} from "./admin";
 import {sendFcmToSpaceMembers} from "./fcm";
-
-if (!admin.apps.length) {
-  admin.initializeApp();
-}
-
-const db = admin.firestore();
 
 /**
  * Triggered when a comment is created on a task.

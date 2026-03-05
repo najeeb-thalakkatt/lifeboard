@@ -5,7 +5,7 @@ abstract final class Validators {
     if (value == null || value.trim().isEmpty) {
       return 'Email is required';
     }
-    final emailRegex = RegExp(r'^[\w\-.+]+@[\w\-]+\.[\w\-]+$');
+    final emailRegex = RegExp(r'^[\w\-.+]+@[\w\-]+(?:\.[\w\-]+)+$');
     if (!emailRegex.hasMatch(value.trim())) {
       return 'Enter a valid email address';
     }

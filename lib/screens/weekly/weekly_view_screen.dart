@@ -585,14 +585,7 @@ class _WeeklyTaskCard extends ConsumerWidget {
   }
 
   Color _statusColor(String status) {
-    switch (status) {
-      case 'done':
-        return const Color(0xFF4CAF50);
-      case 'in_progress':
-        return AppColors.accentWarm;
-      default:
-        return AppColors.statusTodo;
-    }
+    return AppColors.statusAccent(status);
   }
 }
 

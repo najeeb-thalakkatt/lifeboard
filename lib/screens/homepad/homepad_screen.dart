@@ -200,7 +200,7 @@ class _HomePadContentState extends ConsumerState<_HomePadContent> {
                           style: GoogleFonts.nunito(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: AppColors.primaryDark,
+                            color: Theme.of(context).colorScheme.onSurface,
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -286,7 +286,7 @@ class _HomePadContentState extends ConsumerState<_HomePadContent> {
                           style: GoogleFonts.nunito(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: AppColors.primaryDark,
+                            color: Theme.of(context).colorScheme.onSurface,
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -295,7 +295,7 @@ class _HomePadContentState extends ConsumerState<_HomePadContent> {
                           'Try a different search or tap + to add a custom item',
                           style: GoogleFonts.inter(
                             fontSize: 14,
-                            color: AppColors.primaryDark
+                            color: Theme.of(context).colorScheme.onSurface
                                 .withValues(alpha: 0.6),
                           ),
                           textAlign: TextAlign.center,
@@ -366,7 +366,7 @@ class _HomePadContentState extends ConsumerState<_HomePadContent> {
                     style: GoogleFonts.nunito(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.primaryDark,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                 ),
@@ -631,8 +631,8 @@ class _FilterChip extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
             color: isSelected
-                ? AppColors.primaryDark
-                : AppColors.primaryDark.withValues(alpha: 0.06),
+                ? Theme.of(context).colorScheme.primary
+                : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.06),
             borderRadius: BorderRadius.circular(18),
           ),
           alignment: Alignment.center,
@@ -646,7 +646,7 @@ class _FilterChip extends StatelessWidget {
                 style: GoogleFonts.inter(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
-                  color: isSelected ? Colors.white : AppColors.primaryDark,
+                  color: isSelected ? Colors.white : Theme.of(context).colorScheme.onSurface,
                 ),
               ),
             ],
@@ -674,7 +674,7 @@ class _EmptyState extends StatelessWidget {
           Text(
             'Your shopping list is empty',
             style: AppTextStyles.headingSmall.copyWith(
-              color: AppColors.primaryDark,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
             textAlign: TextAlign.center,
           ),
@@ -682,7 +682,7 @@ class _EmptyState extends StatelessWidget {
           Text(
             'Tap + to search and add items, or browse the catalog below!',
             style: AppTextStyles.bodyMedium.copyWith(
-              color: AppColors.primaryDark.withValues(alpha: 0.6),
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
             ),
             textAlign: TextAlign.center,
           ),
@@ -721,7 +721,7 @@ class _RecentlyBoughtHeader extends StatelessWidget {
               style: GoogleFonts.nunito(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: AppColors.primaryDark.withValues(alpha: 0.6),
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
             const SizedBox(width: 8),
@@ -729,7 +729,7 @@ class _RecentlyBoughtHeader extends StatelessWidget {
               '$count',
               style: GoogleFonts.inter(
                 fontSize: 12,
-                color: AppColors.primaryDark.withValues(alpha: 0.4),
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
               ),
             ),
             const Spacer(),
@@ -739,7 +739,7 @@ class _RecentlyBoughtHeader extends StatelessWidget {
                 'Clear',
                 style: GoogleFonts.inter(
                   fontSize: 12,
-                  color: AppColors.primaryDark.withValues(alpha: 0.5),
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
                 ),
               ),
             ),
@@ -748,7 +748,7 @@ class _RecentlyBoughtHeader extends StatelessWidget {
               duration: const Duration(milliseconds: 200),
               child: Icon(
                 Icons.expand_more,
-                color: AppColors.primaryDark.withValues(alpha: 0.4),
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
               ),
             ),
           ],
@@ -792,8 +792,8 @@ class _SpacePicker extends ConsumerWidget {
                 isSelected ? Icons.check_circle : Icons.circle_outlined,
                 size: 18,
                 color: isSelected
-                    ? AppColors.primaryDark
-                    : AppColors.primaryDark.withValues(alpha: 0.3),
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -802,7 +802,7 @@ class _SpacePicker extends ConsumerWidget {
                   style: GoogleFonts.inter(
                     fontSize: 14,
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                    color: AppColors.primaryDark,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
               ),
@@ -820,7 +820,7 @@ class _SpacePicker extends ConsumerWidget {
           const SizedBox(width: 4),
           Icon(
             Icons.arrow_drop_down,
-            color: AppColors.primaryDark.withValues(alpha: 0.6),
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
           ),
         ],
       ),
