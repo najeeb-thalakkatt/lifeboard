@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -18,9 +17,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  debugPrint('[FCM-BG] Background message: ${message.messageId}');
-  debugPrint('[FCM-BG] Data: ${message.data}');
-  debugPrint('[FCM-BG] Notification: ${message.notification?.title} — ${message.notification?.body}');
+  // Background message received — no action needed beyond Firebase init.
 }
 
 Future<void> main() async {
@@ -76,7 +73,7 @@ Future<void> _rescheduleReminders(
 
     await notificationService.rescheduleAllReminders(allTasks);
   } catch (e) {
-    debugPrint('[main] Error rescheduling reminders: $e');
+    // Rescheduling is best-effort; ignore errors.
   }
 }
 
@@ -104,9 +101,8 @@ Future<void> _syncUserProfile(User user) async {
 
     if (updates.isNotEmpty) {
       await docRef.update(updates);
-      debugPrint('[main] Synced user profile: $updates');
     }
-  } catch (e) {
-    debugPrint('[main] Error syncing user profile: $e');
+  } catch (_) {
+    // Profile sync is best-effort; ignore errors.
   }
 }

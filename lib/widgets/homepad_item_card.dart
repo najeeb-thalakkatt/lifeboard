@@ -60,7 +60,17 @@ class HomePadItemCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isPurchased = item.status == 'purchased';
 
-    return Dismissible(
+    final statusLabel = isPurchased ? 'bought' : 'to buy';
+    final semanticLabel =
+        '${item.name}, ${item.category}, $statusLabel';
+    final semanticHint = isPurchased
+        ? 'Swipe left to remove'
+        : 'Swipe left to mark as bought';
+
+    return Semantics(
+      label: semanticLabel,
+      hint: semanticHint,
+      child: Dismissible(
       key: ValueKey(item.id),
       direction: DismissDirection.endToStart,
       confirmDismiss: (_) async {
@@ -124,7 +134,10 @@ class HomePadItemCard extends StatelessWidget {
               const SizedBox(width: 12),
 
               // Checkbox
-              GestureDetector(
+              Semantics(
+                label: isPurchased ? 'Marked as bought' : 'Mark as bought',
+                button: true,
+                child: GestureDetector(
                 onTap: () {
                   HapticFeedback.lightImpact();
                   onTogglePurchased();
@@ -158,9 +171,13 @@ class HomePadItemCard extends StatelessWidget {
                   ),
                 ),
               ),
+              ),
 
-              // Emoji
-              Text(item.emoji, style: const TextStyle(fontSize: 20)),
+              // Emoji — 30% opacity when purchased
+              Opacity(
+                opacity: isPurchased ? 0.3 : 1.0,
+                child: Text(item.emoji, style: const TextStyle(fontSize: 20)),
+              ),
               const SizedBox(width: 8),
 
               // Item name + attribution
@@ -219,11 +236,32 @@ class HomePadItemCard extends StatelessWidget {
                     ),
                   ),
                 ),
+              // Category tag pill
+              if (!isPurchased && item.category.isNotEmpty) ...[
+                const SizedBox(width: 4),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    item.category,
+                    style: GoogleFonts.inter(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w500,
+                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.7),
+                    ),
+                  ),
+                ),
+              ],
               const SizedBox(width: 12),
             ],
           ),
         ),
       ),
+    ),
     );
   }
 }

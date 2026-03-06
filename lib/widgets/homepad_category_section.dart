@@ -80,6 +80,50 @@ class _HomePadCategorySectionState extends State<HomePadCategorySection>
     });
   }
 
+  Widget _buildExpandedContent(
+      BuildContext context, Map<String, List<HomePadItem>> subcategoryGroups) {
+    final expandedChild = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (final entry in subcategoryGroups.entries) ...[
+          if (entry.key.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(left: 48, top: 8, bottom: 4),
+              child: Text(
+                entry.key.toUpperCase(),
+                style: GoogleFonts.inter(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.4),
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ),
+          ...entry.value.map((item) => _CatalogItemRow(
+                item: item,
+                onTap: () => widget.onToggleItem(item),
+              )),
+        ],
+      ],
+    );
+
+    // Skip animation when Reduce Motion is enabled
+    if (MediaQuery.of(context).disableAnimations) {
+      return _isExpanded ? expandedChild : const SizedBox.shrink();
+    }
+
+    return AnimatedCrossFade(
+      firstChild: const SizedBox.shrink(),
+      secondChild: expandedChild,
+      crossFadeState:
+          _isExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+      duration: const Duration(milliseconds: 250),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // Group items by subcategory
@@ -139,39 +183,8 @@ class _HomePadCategorySectionState extends State<HomePadCategorySection>
           ),
         ),
 
-        // Expanded content
-        AnimatedCrossFade(
-          firstChild: const SizedBox.shrink(),
-          secondChild: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              for (final entry in subcategoryGroups.entries) ...[
-                if (entry.key.isNotEmpty)
-                  Padding(
-                    padding:
-                        const EdgeInsets.only(left: 48, top: 8, bottom: 4),
-                    child: Text(
-                      entry.key.toUpperCase(),
-                      style: GoogleFonts.inter(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ),
-                ...entry.value.map((item) => _CatalogItemRow(
-                      item: item,
-                      onTap: () => widget.onToggleItem(item),
-                    )),
-              ],
-            ],
-          ),
-          crossFadeState: _isExpanded
-              ? CrossFadeState.showSecond
-              : CrossFadeState.showFirst,
-          duration: const Duration(milliseconds: 250),
-        ),
+        // Expanded content — respect Reduce Motion
+        _buildExpandedContent(context, subcategoryGroups),
       ],
     );
   }

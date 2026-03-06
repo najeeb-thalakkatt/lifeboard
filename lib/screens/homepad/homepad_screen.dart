@@ -173,91 +173,79 @@ class _HomePadContentState extends ConsumerState<_HomePadContent> {
 
           return CustomScrollView(
             slivers: [
-              // ── Search & Filter Bar ────────────────────────────
-              SliverToBoxAdapter(
-                child: _SearchAndFilterBar(
-                  searchQuery: searchQuery,
-                  searchController: _searchController,
-                  categoryFilter: categoryFilter,
-                  onSearchChanged: (val) =>
-                      ref.read(homePadSearchProvider.notifier).state = val,
-                  onCategoryChanged: (val) =>
-                      ref.read(homePadCategoryFilterProvider.notifier).state =
-                          val,
+              // ── Search & Filter Bar (pinned) ──────────────────
+              SliverPersistentHeader(
+                pinned: true,
+                delegate: _PinnedSearchBarDelegate(
+                  child: _SearchAndFilterBar(
+                    searchQuery: searchQuery,
+                    searchController: _searchController,
+                    categoryFilter: categoryFilter,
+                    onSearchChanged: (val) =>
+                        ref.read(homePadSearchProvider.notifier).state = val,
+                    onCategoryChanged: (val) =>
+                        ref.read(homePadCategoryFilterProvider.notifier).state =
+                            val,
+                  ),
                 ),
               ),
 
-              // ── "To Buy" Section ───────────────────────────────
+              // ── Summary Bar + "To Buy" Section ────────────────
               if (toBuyItems.isNotEmpty) ...[
                 SliverToBoxAdapter(
-                  child: Padding(
-                    padding:
-                        const EdgeInsets.only(left: 16, top: 16, bottom: 4),
+                  child: Container(
+                    height: 48,
+                    margin: const EdgeInsets.only(
+                        left: 16, right: 16, top: 16, bottom: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.06),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     child: Row(
                       children: [
                         Text(
-                          'To Buy',
-                          style: GoogleFonts.nunito(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
+                          '${toBuyItems.length} ${toBuyItems.length == 1 ? 'item' : 'items'} to buy',
+                          style: GoogleFonts.inter(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
                             color: Theme.of(context).colorScheme.onSurface,
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: AppColors.accentWarm,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Text(
-                            '${toBuyItems.length}',
-                            style: GoogleFonts.inter(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
                         const Spacer(),
-                        TextButton.icon(
-                          onPressed: () =>
-                              _markAllDone(context, spaceId),
-                          icon: const Icon(Icons.check_circle_outline,
-                              size: 18),
-                          label: Text(
-                            'Mark All Done',
-                            style: GoogleFonts.inter(fontSize: 12),
+                        Semantics(
+                          label: 'Mark all items as bought',
+                          button: true,
+                          child: Material(
+                            color: AppColors.statusDone,
+                            borderRadius: BorderRadius.circular(18),
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(18),
+                              onTap: () => _markAllDone(context, spaceId),
+                              child: Container(
+                                height: 36,
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16),
+                                alignment: Alignment.center,
+                                child: Text(
+                                  'All Done!',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                       ],
                     ),
                   ),
                 ),
-                SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      final item = toBuyItems[index];
-                      return StaggeredListItem(
-                        index: index,
-                        child: HomePadItemCard(
-                          item: item,
-                          addedByName: item.addedBy != null
-                              ? memberProfiles[item.addedBy]
-                              : null,
-                          onTogglePurchased: () {
-                            _markPurchasedWithUndo(context, item);
-                          },
-                          onDismissed: () {
-                            _markPurchasedWithUndo(context, item);
-                          },
-                        ),
-                      );
-                    },
-                    childCount: toBuyItems.length,
-                  ),
-                ),
+                // Group to-buy items by category with sub-headers
+                ..._buildCategoryGroupedToBuy(
+                  context, toBuyItems, memberProfiles),
               ],
 
               // ── Empty State ────────────────────────────────────
@@ -265,8 +253,10 @@ class _HomePadContentState extends ConsumerState<_HomePadContent> {
                   purchasedItems.isEmpty &&
                   searchQuery.isEmpty &&
                   categoryFilter == null)
-                const SliverToBoxAdapter(
-                  child: _EmptyState(),
+                SliverToBoxAdapter(
+                  child: _EmptyState(
+                    onBrowse: () => _showAddItemSheet(context),
+                  ),
                 ),
 
               // ── Search No Results State ─────────────────────────
@@ -320,40 +310,8 @@ class _HomePadContentState extends ConsumerState<_HomePadContent> {
                   ),
                 ),
                 if (_recentlyBoughtExpanded)
-                  SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final item = purchasedItems[index];
-                        return HomePadItemCard(
-                          item: item,
-                          purchasedByName: item.purchasedBy != null
-                              ? memberProfiles[item.purchasedBy]
-                              : null,
-                          dismissLabel: 'Remove',
-                          dismissColor: Colors.orange.shade700,
-                          dismissIcon: Icons.remove_circle_outline,
-                          onTogglePurchased: () {
-                            ref
-                                .read(homePadActionProvider.notifier)
-                                .reAddToBuy(
-                                  spaceId: spaceId,
-                                  itemId: item.id,
-                                );
-                          },
-                          onDismissed: () {
-                            ref
-                                .read(homePadActionProvider.notifier)
-                                .markAvailable(
-                                  spaceId: spaceId,
-                                  itemId: item.id,
-                                  isCustom: item.isCustom,
-                                );
-                          },
-                        );
-                      },
-                      childCount: purchasedItems.length,
-                    ),
-                  ),
+                  ..._buildDateGroupedPurchased(
+                    context, purchasedItems, memberProfiles),
               ],
 
               // ── Browse Catalog Section ─────────────────────────
@@ -428,6 +386,160 @@ class _HomePadContentState extends ConsumerState<_HomePadContent> {
     );
   }
 
+  List<Widget> _buildCategoryGroupedToBuy(
+    BuildContext context,
+    List<HomePadItem> toBuyItems,
+    Map<String, String> memberProfiles,
+  ) {
+    // Group by category
+    final Map<String, List<HomePadItem>> grouped = {};
+    for (final item in toBuyItems) {
+      final cat = item.category.isEmpty ? 'Other' : item.category;
+      grouped.putIfAbsent(cat, () => []).add(item);
+    }
+
+    final slivers = <Widget>[];
+    var staggerIndex = 0;
+
+    for (final entry in grouped.entries) {
+      // Category sub-header
+      slivers.add(SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.only(left: 20, top: 12, bottom: 4),
+          child: Text(
+            entry.key.toUpperCase(),
+            style: GoogleFonts.inter(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: Theme.of(context)
+                  .colorScheme
+                  .onSurface
+                  .withValues(alpha: 0.45),
+              letterSpacing: 0.5,
+            ),
+          ),
+        ),
+      ));
+
+      // Items in this category
+      final categoryItems = entry.value;
+      final startIndex = staggerIndex;
+      slivers.add(SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            final item = categoryItems[index];
+            return StaggeredListItem(
+              index: startIndex + index,
+              child: HomePadItemCard(
+                item: item,
+                addedByName: item.addedBy != null
+                    ? memberProfiles[item.addedBy]
+                    : null,
+                onTogglePurchased: () {
+                  _markPurchasedWithUndo(context, item);
+                },
+                onDismissed: () {
+                  _markPurchasedWithUndo(context, item);
+                },
+              ),
+            );
+          },
+          childCount: categoryItems.length,
+        ),
+      ));
+      staggerIndex += categoryItems.length;
+    }
+
+    return slivers;
+  }
+
+  static String _dateGroupLabel(DateTime? purchasedAt) {
+    if (purchasedAt == null) return 'Earlier';
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+    final weekAgo = today.subtract(const Duration(days: 7));
+    final date = DateTime(purchasedAt.year, purchasedAt.month, purchasedAt.day);
+
+    if (date == today || date.isAfter(today)) return 'Today';
+    if (date == yesterday) return 'Yesterday';
+    if (date.isAfter(weekAgo)) return 'This Week';
+    return 'Earlier';
+  }
+
+  List<Widget> _buildDateGroupedPurchased(
+    BuildContext context,
+    List<HomePadItem> purchasedItems,
+    Map<String, String> memberProfiles,
+  ) {
+    // Group by date label, preserving order (already sorted by purchasedAt desc)
+    final Map<String, List<HomePadItem>> grouped = {};
+    for (final item in purchasedItems) {
+      final label = _dateGroupLabel(item.purchasedAt);
+      grouped.putIfAbsent(label, () => []).add(item);
+    }
+
+    final slivers = <Widget>[];
+
+    for (final entry in grouped.entries) {
+      // Date group header
+      slivers.add(SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.only(left: 20, top: 12, bottom: 4),
+          child: Text(
+            entry.key,
+            style: GoogleFonts.inter(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: Theme.of(context)
+                  .colorScheme
+                  .onSurface
+                  .withValues(alpha: 0.45),
+              letterSpacing: 0.5,
+            ),
+          ),
+        ),
+      ));
+
+      slivers.add(SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            final item = entry.value[index];
+            return HomePadItemCard(
+              item: item,
+              purchasedByName: item.purchasedBy != null
+                  ? memberProfiles[item.purchasedBy]
+                  : null,
+              dismissLabel: 'Remove',
+              dismissColor: Colors.orange.shade700,
+              dismissIcon: Icons.remove_circle_outline,
+              onTogglePurchased: () {
+                ref
+                    .read(homePadActionProvider.notifier)
+                    .reAddToBuy(
+                      spaceId: spaceId,
+                      itemId: item.id,
+                    );
+              },
+              onDismissed: () {
+                ref
+                    .read(homePadActionProvider.notifier)
+                    .markAvailable(
+                      spaceId: spaceId,
+                      itemId: item.id,
+                      isCustom: item.isCustom,
+                    );
+              },
+            );
+          },
+          childCount: entry.value.length,
+        ),
+      ));
+    }
+
+    return slivers;
+  }
+
   void _showAddItemSheet(BuildContext context) {
     showModalBottomSheet<bool>(
       context: context,
@@ -494,6 +606,12 @@ class _HomePadContentState extends ConsumerState<_HomePadContent> {
       if (count > 0 && context.mounted) {
         HapticFeedback.heavyImpact();
         CelebrationOverlay.show(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Everything's done! Great teamwork! 🎉"),
+            duration: Duration(seconds: 3),
+          ),
+        );
       }
     }
   }
@@ -621,7 +739,10 @@ class _FilterChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(right: 8),
-      child: GestureDetector(
+      child: Semantics(
+        label: '$label category filter${isSelected ? ', selected' : ''}',
+        button: true,
+        child: GestureDetector(
         onTap: () {
           HapticFeedback.selectionClick();
           onTap();
@@ -653,6 +774,7 @@ class _FilterChip extends StatelessWidget {
           ),
         ),
       ),
+      ),
     );
   }
 }
@@ -660,7 +782,9 @@ class _FilterChip extends StatelessWidget {
 // ── Empty State ──────────────────────────────────────────────────────
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState();
+  const _EmptyState({this.onBrowse});
+
+  final VoidCallback? onBrowse;
 
   @override
   Widget build(BuildContext context) {
@@ -669,10 +793,10 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Text('🛒', style: TextStyle(fontSize: 56)),
+          const Text('🎉', style: TextStyle(fontSize: 56)),
           const SizedBox(height: 16),
           Text(
-            'Your shopping list is empty',
+            'All done for now!',
             style: AppTextStyles.headingSmall.copyWith(
               color: Theme.of(context).colorScheme.onSurface,
             ),
@@ -680,12 +804,19 @@ class _EmptyState extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Tap + to search and add items, or browse the catalog below!',
+            'Browse below to add what you need',
             style: AppTextStyles.bodyMedium.copyWith(
               color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
             ),
             textAlign: TextAlign.center,
           ),
+          if (onBrowse != null) ...[
+            const SizedBox(height: 20),
+            FilledButton.tonal(
+              onPressed: onBrowse,
+              child: const Text('Browse Items'),
+            ),
+          ],
         ],
       ),
     );
@@ -739,13 +870,15 @@ class _RecentlyBoughtHeader extends StatelessWidget {
                 'Clear',
                 style: GoogleFonts.inter(
                   fontSize: 12,
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                  color: Theme.of(context).colorScheme.error,
                 ),
               ),
             ),
             AnimatedRotation(
               turns: isExpanded ? 0.5 : 0.0,
-              duration: const Duration(milliseconds: 200),
+              duration: MediaQuery.of(context).disableAnimations
+                  ? Duration.zero
+                  : const Duration(milliseconds: 200),
               child: Icon(
                 Icons.expand_more,
                 color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
@@ -826,4 +959,32 @@ class _SpacePicker extends ConsumerWidget {
       ),
     );
   }
+}
+
+// ── Pinned Search Bar Delegate ──────────────────────────────────────
+
+class _PinnedSearchBarDelegate extends SliverPersistentHeaderDelegate {
+  const _PinnedSearchBarDelegate({required this.child});
+
+  final Widget child;
+
+  @override
+  double get minExtent => 124;
+
+  @override
+  double get maxExtent => 124;
+
+  @override
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return Material(
+      color: Theme.of(context).colorScheme.surface,
+      elevation: overlapsContent ? 2 : 0,
+      child: child,
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant _PinnedSearchBarDelegate oldDelegate) =>
+      child != oldDelegate.child;
 }

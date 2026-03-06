@@ -346,10 +346,21 @@ class _BoardContentState extends ConsumerState<_BoardContent> {
               ? allTasks.where((t) => filter.matches(t)).toList()
               : allTasks;
 
+          // Hide recurring tasks whose due date is in the future
+          final now = DateTime.now();
+          final today = DateTime(now.year, now.month, now.day);
+          final visibleTasks = filteredTasks.where((t) {
+            if (t.recurrenceRule == 'never') return true;
+            if (t.dueDate == null) return true;
+            final taskDate = DateTime(
+                t.dueDate!.year, t.dueDate!.month, t.dueDate!.day);
+            return !taskDate.isAfter(today);
+          }).toList();
+
           // Group tasks by status
           final tasksByStatus = <String, List<TaskModel>>{};
           for (final status in _kanbanStatuses) {
-            tasksByStatus[status] = filteredTasks
+            tasksByStatus[status] = visibleTasks
                 .where((t) => t.status == status)
                 .toList()
               ..sort((a, b) => a.order.compareTo(b.order));

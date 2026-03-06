@@ -47,11 +47,11 @@ You are NOT a UI/UX designer. You are an **agile practitioner and Kanban expert*
 
 ## Product Vision
 
-**For** couples, co-parents, housemates, and small family units  
-**Who** struggle with the invisible mental load of managing shared life  
-**Lifeboard** is a shared life backlog app  
-**That** makes responsibilities visible, distributable, and completable  
-**Unlike** shared notes apps, todo lists, or spreadsheets  
+**For** couples, co-parents, housemates, and small family units
+**Who** struggle with the invisible mental load of managing shared life
+**Lifeboard** is a shared life backlog app
+**That** makes responsibilities visible, distributable, and completable
+**Unlike** shared notes apps, todo lists, or spreadsheets
 **Our product** applies real Kanban principles — WIP limits, flow, pull systems — to make daily life feel less overwhelming and more fair.
 
 ### Core Problem Statements

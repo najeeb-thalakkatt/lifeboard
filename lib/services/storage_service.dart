@@ -136,7 +136,7 @@ class StorageService {
       final ref = _storage.refFromURL(downloadUrl);
       await ref.delete();
     } catch (e) {
-      debugPrint('[StorageService] Failed to delete file: $e');
+      // Deletion is best-effort; ignore errors.
     }
   }
 

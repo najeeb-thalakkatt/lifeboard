@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:lifeboard/models/task_model.dart';
@@ -154,7 +154,7 @@ class TaskNotifier extends StateNotifier<AsyncValue<void>> {
     try {
       _ref.read(notificationServiceProvider).scheduleTaskReminder(task);
     } catch (e) {
-      debugPrint('[TaskNotifier] Error scheduling reminder: $e');
+      // Scheduling is best-effort.
     }
   }
 
@@ -163,7 +163,7 @@ class TaskNotifier extends StateNotifier<AsyncValue<void>> {
     try {
       _ref.read(notificationServiceProvider).cancelTaskReminder(taskId);
     } catch (e) {
-      debugPrint('[TaskNotifier] Error cancelling reminder: $e');
+      // Cancellation is best-effort.
     }
   }
 }

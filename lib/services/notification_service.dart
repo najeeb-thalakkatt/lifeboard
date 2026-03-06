@@ -49,9 +49,8 @@ class NotificationService {
   /// Generates a unique notification ID for a task.
   /// Uses a combination of task ID hash and timestamp to avoid collisions.
   int _generateNotificationId(String taskId) {
-    // Combine task ID hash with current timestamp to ensure uniqueness
     final timestamp = DateTime.now().millisecondsSinceEpoch;
-    return (taskId.hashCode ^ timestamp).abs() & 0x7FFFFFFF; // Ensure positive 32-bit int
+    return (taskId.hashCode ^ timestamp).abs() & 0x7FFFFFFF;
   }
 
   /// Schedules a notification with retry logic and exponential backoff.
@@ -74,10 +73,7 @@ class NotificationService {
       );
     } catch (e) {
       if (attempt < _maxRetries) {
-        final delay = _baseDelayMs * (1 << attempt); // Exponential backoff
-        debugPrint(
-          '[NotificationService] Schedule attempt ${attempt + 1} failed, retrying in ${delay}ms: $e',
-        );
+        final delay = _baseDelayMs * (1 << attempt);
         await Future.delayed(Duration(milliseconds: delay));
         await _scheduleNotificationWithRetry(
           id: id,
@@ -88,7 +84,6 @@ class NotificationService {
           attempt: attempt + 1,
         );
       } else {
-        debugPrint('[NotificationService] Failed to schedule notification after $_maxRetries attempts: $e');
         rethrow;
       }
     }
@@ -97,12 +92,7 @@ class NotificationService {
   /// Initializes notification handling for the current platform.
   /// Call this after Firebase is initialized and the user is signed in.
   Future<void> initialize() async {
-    if (_initialized) {
-      debugPrint('[NotificationService] Already initialized — skipping');
-      return;
-    }
-
-    debugPrint('[NotificationService] ===== INITIALIZING PUSH NOTIFICATIONS =====');
+    if (_initialized) return;
 
     // Request permissions (iOS requires explicit request)
     await _requestPermission();
@@ -117,10 +107,7 @@ class NotificationService {
     await _saveToken();
 
     // Listen for token refresh
-    _messaging.onTokenRefresh.listen((token) {
-      debugPrint('[NotificationService] Token REFRESHED: ${token.substring(0, 20)}...');
-      _saveTokenToFirestore(token);
-    });
+    _messaging.onTokenRefresh.listen(_saveTokenToFirestore);
 
     // Configure foreground notification presentation (iOS)
     await _messaging.setForegroundNotificationPresentationOptions(
@@ -128,7 +115,6 @@ class NotificationService {
       badge: true,
       sound: true,
     );
-    debugPrint('[NotificationService] Foreground presentation options set (alert+badge+sound)');
 
     // Handle foreground messages
     FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
@@ -139,12 +125,10 @@ class NotificationService {
     // Check if app was opened from a notification (terminated state)
     final initialMessage = await _messaging.getInitialMessage();
     if (initialMessage != null) {
-      debugPrint('[NotificationService] App opened from notification: ${initialMessage.data}');
       _handleNotificationTap(initialMessage);
     }
 
     _initialized = true;
-    debugPrint('[NotificationService] ===== PUSH NOTIFICATIONS READY =====');
   }
 
   /// Initializes the local notifications plugin with platform-specific settings.
@@ -155,7 +139,6 @@ class NotificationService {
     if (!_timezoneInitialized) {
       tz.initializeTimeZones();
       _timezoneInitialized = true;
-      debugPrint('[NotificationService] Timezone data initialized');
     }
 
     const androidSettings =
@@ -173,7 +156,6 @@ class NotificationService {
 
     await _localNotifications.initialize(settings: initSettings);
     _localNotificationsInitialized = true;
-    debugPrint('[NotificationService] Local notifications initialized');
   }
 
   /// Schedules a local notification reminder for a task's due date.
@@ -181,10 +163,7 @@ class NotificationService {
   Future<void> scheduleTaskReminder(TaskModel task) async {
     if (kIsWeb || task.dueDate == null) return;
     if (!_localNotificationsInitialized) return;
-    if (!_hasNotificationPermission) {
-      debugPrint('[NotificationService] Cannot schedule reminder: no notification permission');
-      return;
-    }
+    if (!_hasNotificationPermission) return;
 
     final scheduledDate = tz.TZDateTime.from(task.dueDate!, tz.local);
 
@@ -221,11 +200,8 @@ class NotificationService {
         scheduledDate: scheduledDate,
         details: details,
       );
-      debugPrint(
-        '[NotificationService] Scheduled reminder for "${task.title}" at $scheduledDate',
-      );
-    } catch (e) {
-      debugPrint('[NotificationService] Error scheduling reminder: $e');
+    } catch (_) {
+      // Scheduling is best-effort; silently ignore failures.
     }
   }
 
@@ -236,10 +212,9 @@ class NotificationService {
       final notificationId = _taskNotificationIds.remove(taskId);
       if (notificationId != null) {
         await _localNotifications.cancel(id: notificationId);
-        debugPrint('[NotificationService] Cancelled reminder for task $taskId');
       }
-    } catch (e) {
-      debugPrint('[NotificationService] Error cancelling reminder: $e');
+    } catch (_) {
+      // Cancellation is best-effort.
     }
   }
 
@@ -253,16 +228,11 @@ class NotificationService {
     await _localNotifications.cancelAll();
     _taskNotificationIds.clear();
 
-    int scheduled = 0;
     for (final task in tasks) {
       if (task.dueDate != null && task.status != 'done') {
         await scheduleTaskReminder(task);
-        scheduled++;
       }
     }
-    debugPrint(
-      '[NotificationService] Rescheduled $scheduled task reminders',
-    );
   }
 
   /// Creates the Android notification channel used by FCM.
@@ -311,18 +281,9 @@ class NotificationService {
         sound: true,
       );
 
-      _hasNotificationPermission = settings.authorizationStatus == AuthorizationStatus.authorized;
-      
-      debugPrint(
-        '[NotificationService] Permission status: ${settings.authorizationStatus}'
-        ' | authorized=$_hasNotificationPermission',
-      );
-
-      if (!_hasNotificationPermission) {
-        debugPrint('[NotificationService] ⚠️ PUSH PERMISSION DENIED — notifications will NOT work');
-      }
-    } catch (e) {
-      debugPrint('[NotificationService] Error requesting permission: $e');
+      _hasNotificationPermission =
+          settings.authorizationStatus == AuthorizationStatus.authorized;
+    } catch (_) {
       _hasNotificationPermission = false;
     }
   }
@@ -331,52 +292,34 @@ class NotificationService {
   Future<void> _saveToken() async {
     try {
       final token = await _messaging.getToken();
-
       if (token != null) {
-        debugPrint('[NotificationService] FCM token obtained: ${token.substring(0, 20)}...(${token.length} chars)');
         await _saveTokenToFirestore(token);
-      } else {
-        debugPrint('[NotificationService] ⚠️ FCM token is NULL — push will not work');
       }
-    } catch (e) {
-      debugPrint('[NotificationService] ❌ Error getting FCM token: $e');
+    } catch (_) {
+      // Token retrieval is best-effort.
     }
   }
 
   /// Persists the FCM token to the current user's Firestore doc.
   Future<void> _saveTokenToFirestore(String token) async {
     final userId = FirebaseAuth.instance.currentUser?.uid;
-    if (userId == null) {
-      debugPrint('[NotificationService] ⚠️ Cannot save token — no signed-in user');
-      return;
-    }
+    if (userId == null) return;
 
     try {
       await _firestoreService.saveFcmToken(userId: userId, token: token);
-      debugPrint('[NotificationService] ✅ Token saved to Firestore for user $userId');
-    } catch (e) {
-      debugPrint('[NotificationService] ❌ Error saving token to Firestore: $e');
+    } catch (_) {
+      // Token persistence is best-effort.
     }
   }
 
   /// Handles a notification received while the app is in the foreground.
   void _handleForegroundMessage(RemoteMessage message) {
-    debugPrint(
-      '[NotificationService] 📩 FOREGROUND MESSAGE RECEIVED:\n'
-      '  messageId: ${message.messageId}\n'
-      '  title: ${message.notification?.title}\n'
-      '  body: ${message.notification?.body}\n'
-      '  data: ${message.data}',
-    );
+    // Foreground messages are handled by the system notification display.
   }
 
   /// Handles taps on notifications (background + terminated state).
   /// Navigates to the relevant screen based on the FCM data payload.
   void _handleNotificationTap(RemoteMessage message) {
-    debugPrint(
-      '[NotificationService] Notification tapped: ${message.data}',
-    );
-
     final context = navigatorKey?.currentContext;
     if (context == null) return;
 
@@ -410,9 +353,8 @@ class NotificationService {
         await _firestoreService.removeFcmToken(userId: userId, token: token);
       }
       await _messaging.deleteToken();
-      debugPrint('[NotificationService] Token removed');
-    } catch (e) {
-      debugPrint('[NotificationService] Error removing token: $e');
+    } catch (_) {
+      // Token removal is best-effort.
     }
   }
 
@@ -432,17 +374,12 @@ class NotificationService {
   /// Call this when the service is no longer needed.
   Future<void> dispose() async {
     if (kIsWeb) return;
-    
+
     try {
-      // Cancel all pending notifications
       await _localNotifications.cancelAll();
-      
-      // Clear notification ID mappings
       _taskNotificationIds.clear();
-      
-      debugPrint('[NotificationService] Resources disposed');
-    } catch (e) {
-      debugPrint('[NotificationService] Error during disposal: $e');
+    } catch (_) {
+      // Disposal is best-effort.
     }
   }
 }

@@ -3,8 +3,6 @@ import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
-import 'package:flutter/foundation.dart';
-
 import 'package:lifeboard/core/constants.dart';
 import 'package:lifeboard/core/errors/app_exceptions.dart';
 import 'package:lifeboard/models/activity_model.dart';
@@ -57,8 +55,6 @@ class FirestoreService {
     required String name,
     required String userId,
   }) async {
-    debugPrint('[FirestoreService] createSpace called: name=$name, userId=$userId');
-
     final inviteCode = _generateInviteCode();
 
     final now = DateTime.now();
@@ -826,7 +822,6 @@ class FirestoreService {
       AppConstants.inviteCodeLength,
       (_) => chars[random.nextInt(chars.length)],
     ).join();
-    debugPrint('[FirestoreService] generated invite code: $code');
     return code;
   }
 }

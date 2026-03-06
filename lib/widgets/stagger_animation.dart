@@ -75,6 +75,11 @@ class _StaggeredListItemState extends State<StaggeredListItem>
 
   @override
   Widget build(BuildContext context) {
+    // Respect Reduce Motion accessibility setting
+    if (MediaQuery.of(context).disableAnimations) {
+      return widget.child;
+    }
+
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
