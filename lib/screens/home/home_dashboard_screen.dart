@@ -74,7 +74,7 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
         }
 
         return const Scaffold(
-          body: SizedBox.shrink(),
+          body: Center(child: CircularProgressIndicator()),
         );
       },
     );

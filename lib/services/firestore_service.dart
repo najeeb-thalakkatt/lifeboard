@@ -8,6 +8,8 @@ import 'package:lifeboard/core/errors/app_exceptions.dart';
 import 'package:lifeboard/models/activity_model.dart';
 import 'package:lifeboard/models/board_model.dart';
 import 'package:lifeboard/models/comment_model.dart';
+import 'package:lifeboard/models/chore_completion_model.dart';
+import 'package:lifeboard/models/chore_model.dart';
 import 'package:lifeboard/models/homepad_item_model.dart';
 import 'package:lifeboard/models/space_model.dart';
 import 'package:lifeboard/models/task_model.dart';
@@ -46,6 +48,13 @@ class FirestoreService {
 
   CollectionReference<Map<String, dynamic>> _homePadRef(String spaceId) =>
       _spacesRef.doc(spaceId).collection('homepad_items');
+
+  CollectionReference<Map<String, dynamic>> _choresRef(String spaceId) =>
+      _spacesRef.doc(spaceId).collection('chores');
+
+  CollectionReference<Map<String, dynamic>> _choreCompletionsRef(
+          String spaceId) =>
+      _spacesRef.doc(spaceId).collection('chore_completions');
 
   // ── Space CRUD ─────────────────────────────────────────────
 
@@ -809,6 +818,205 @@ class FirestoreService {
     }
 
     return docs.length;
+  }
+
+  // ── Chore CRUD ───────────────────────────────────────────────
+
+  /// Streams all chores for a space, ordered by nextDueDate.
+  Stream<List<Chore>> getChores(String spaceId) {
+    return _choresRef(spaceId)
+        .orderBy('nextDueDate')
+        .limit(200)
+        .snapshots()
+        .map((snapshot) =>
+            snapshot.docs.map(Chore.fromFirestore).toList());
+  }
+
+  /// Creates a new chore.
+  Future<Chore> createChore({
+    required String spaceId,
+    required Chore chore,
+  }) async {
+    final docRef = _choresRef(spaceId).doc();
+    await docRef.set(Chore.toFirestore(chore));
+    return chore.copyWith(id: docRef.id);
+  }
+
+  /// Bulk-creates multiple chores in a single WriteBatch.
+  Future<void> bulkCreateChores({
+    required String spaceId,
+    required List<Chore> chores,
+  }) async {
+    for (var i = 0; i < chores.length; i += 500) {
+      final batch = _firestore.batch();
+      final chunk = chores.skip(i).take(500);
+      for (final chore in chunk) {
+        final docRef = _choresRef(spaceId).doc();
+        batch.set(docRef, Chore.toFirestore(chore));
+      }
+      await batch.commit();
+    }
+  }
+
+  /// Updates a chore.
+  Future<void> updateChore({
+    required String spaceId,
+    required String choreId,
+    required Map<String, dynamic> fields,
+  }) async {
+    await _choresRef(spaceId).doc(choreId).update(fields);
+  }
+
+  /// Deletes a chore.
+  Future<void> deleteChore({
+    required String spaceId,
+    required String choreId,
+  }) async {
+    await _choresRef(spaceId).doc(choreId).delete();
+  }
+
+  /// Streams chore completions for a space on a given date string (YYYY-MM-DD).
+  Stream<List<ChoreCompletion>> getCompletionsForDate(
+      String spaceId, String dateStr) {
+    return _choreCompletionsRef(spaceId)
+        .where('date', isEqualTo: dateStr)
+        .orderBy('completedAt', descending: true)
+        .snapshots()
+        .map((snapshot) =>
+            snapshot.docs.map(ChoreCompletion.fromFirestore).toList());
+  }
+
+  /// Records a chore completion and advances the chore's nextDueDate.
+  /// Uses a WriteBatch for atomicity.
+  Future<ChoreCompletion> completeChore({
+    required String spaceId,
+    required Chore chore,
+    required String userId,
+  }) async {
+    final now = DateTime.now();
+    final dateStr =
+        '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+
+    // Create completion record
+    final completion = ChoreCompletion(
+      id: '',
+      choreId: chore.id,
+      choreName: chore.name,
+      choreEmoji: chore.emoji,
+      completedBy: userId,
+      completedAt: now,
+      date: dateStr,
+    );
+    final completionRef = _choreCompletionsRef(spaceId).doc();
+    final nextDue = _calculateNextDueDate(chore, now);
+
+    // Atomic batch: create completion + advance chore
+    final batch = _firestore.batch();
+    batch.set(completionRef, ChoreCompletion.toFirestore(completion));
+    final choreUpdate = <String, dynamic>{
+      'nextDueDate': Timestamp.fromDate(nextDue),
+      'lastCompletedAt': Timestamp.fromDate(now),
+      'lastCompletedBy': userId,
+    };
+    // Archive one-off chores after completion
+    if (chore.recurrenceType == 'one_off') {
+      choreUpdate['isArchived'] = true;
+    }
+    batch.update(_choresRef(spaceId).doc(chore.id), choreUpdate);
+    await batch.commit();
+
+    return completion.copyWith(id: completionRef.id);
+  }
+
+  /// Skips a chore cycle without recording a completion.
+  Future<void> skipChore({
+    required String spaceId,
+    required Chore chore,
+  }) async {
+    final now = DateTime.now();
+    final nextDue = _calculateNextDueDate(chore, now);
+    await _choresRef(spaceId).doc(chore.id).update({
+      'nextDueDate': Timestamp.fromDate(nextDue),
+    });
+  }
+
+  /// Undoes a chore completion: deletes the completion doc and restores the chore.
+  /// Uses a WriteBatch for atomicity.
+  Future<void> undoChoreCompletion({
+    required String spaceId,
+    required String completionId,
+    required String choreId,
+    required DateTime previousNextDueDate,
+  }) async {
+    final batch = _firestore.batch();
+    batch.delete(_choreCompletionsRef(spaceId).doc(completionId));
+    batch.update(_choresRef(spaceId).doc(choreId), {
+      'nextDueDate': Timestamp.fromDate(previousNextDueDate),
+      'lastCompletedAt': null,
+      'lastCompletedBy': null,
+    });
+    await batch.commit();
+  }
+
+  /// Records a hat-tip on a completion.
+  Future<void> hatTipCompletion({
+    required String spaceId,
+    required String completionId,
+    required String userId,
+  }) async {
+    await _choreCompletionsRef(spaceId).doc(completionId).update({
+      'hatTipBy': userId,
+    });
+  }
+
+  /// Calculates the next due date based on recurrence settings.
+  DateTime _calculateNextDueDate(Chore chore, DateTime fromDate) {
+    final isFloating = chore.recurrenceMode == 'floating';
+    final baseDate = isFloating ? fromDate : chore.nextDueDate;
+
+    switch (chore.recurrenceType) {
+      case 'one_off':
+        // One-off chores never recur — return far future as sentinel.
+        // The caller should also set isArchived=true for one-off chores.
+        return DateTime(9999, 1, 1);
+
+      case 'daily':
+        return baseDate.add(const Duration(days: 1));
+
+      case 'every_n_days':
+        return baseDate.add(Duration(days: chore.recurrenceInterval));
+
+      case 'weekly':
+        if (chore.recurrenceDaysOfWeek.isEmpty) {
+          return baseDate.add(const Duration(days: 7));
+        }
+        // Find the next scheduled day of the week
+        final sortedDays = List<int>.from(chore.recurrenceDaysOfWeek)..sort();
+        final currentDay = baseDate.weekday;
+        // Find next day in the list after current
+        for (final day in sortedDays) {
+          if (day > currentDay) {
+            return baseDate.add(Duration(days: day - currentDay));
+          }
+        }
+        // Wrap to next week's first scheduled day
+        return baseDate
+            .add(Duration(days: 7 - currentDay + sortedDays.first));
+
+      case 'biweekly':
+        return baseDate.add(const Duration(days: 14));
+
+      case 'monthly':
+        final nextMonth = DateTime(
+          baseDate.month == 12 ? baseDate.year + 1 : baseDate.year,
+          baseDate.month == 12 ? 1 : baseDate.month + 1,
+          chore.recurrenceDayOfMonth.clamp(1, 28),
+        );
+        return nextMonth;
+
+      default:
+        return baseDate.add(const Duration(days: 7));
+    }
   }
 
   // ── Invite Code Generation ─────────────────────────────────

@@ -1,0 +1,93 @@
+[
+  {
+    "category": "Kitchen",
+    "emoji": "🍽️",
+    "chores": [
+      {"name": "Do the dishes", "emoji": "🍽️", "recurrenceType": "daily"},
+      {"name": "Load dishwasher", "emoji": "🍽️", "recurrenceType": "daily"},
+      {"name": "Empty dishwasher", "emoji": "🍽️", "recurrenceType": "daily"},
+      {"name": "Cook dinner", "emoji": "🍳", "recurrenceType": "daily"},
+      {"name": "Meal prep", "emoji": "🥗", "recurrenceType": "weekly"},
+      {"name": "Wipe counters", "emoji": "🧽", "recurrenceType": "daily"},
+      {"name": "Clean fridge", "emoji": "🧊", "recurrenceType": "monthly"},
+      {"name": "Empty trash", "emoji": "🗑️", "recurrenceType": "daily"},
+      {"name": "Take out recycling", "emoji": "♻️", "recurrenceType": "weekly"},
+      {"name": "Clean oven", "emoji": "🔥", "recurrenceType": "monthly"}
+    ]
+  },
+  {
+    "category": "Cleaning",
+    "emoji": "🧹",
+    "chores": [
+      {"name": "Vacuum floors", "emoji": "🧹", "recurrenceType": "weekly"},
+      {"name": "Mop floors", "emoji": "🪣", "recurrenceType": "weekly"},
+      {"name": "Clean bathroom", "emoji": "🚿", "recurrenceType": "weekly"},
+      {"name": "Scrub toilet", "emoji": "🚽", "recurrenceType": "weekly"},
+      {"name": "Dust surfaces", "emoji": "✨", "recurrenceType": "weekly"},
+      {"name": "Tidy living room", "emoji": "🛋️", "recurrenceType": "daily"},
+      {"name": "Clean windows", "emoji": "🪟", "recurrenceType": "monthly"},
+      {"name": "Clean mirrors", "emoji": "🪞", "recurrenceType": "monthly"}
+    ]
+  },
+  {
+    "category": "Laundry",
+    "emoji": "👕",
+    "chores": [
+      {"name": "Wash clothes", "emoji": "👕", "recurrenceType": "weekly"},
+      {"name": "Fold laundry", "emoji": "🧺", "recurrenceType": "weekly"},
+      {"name": "Put away clothes", "emoji": "👔", "recurrenceType": "weekly"},
+      {"name": "Ironing", "emoji": "👔", "recurrenceType": "weekly"},
+      {"name": "Change bed sheets", "emoji": "🛏️", "recurrenceType": "weekly"}
+    ]
+  },
+  {
+    "category": "Pets",
+    "emoji": "🐾",
+    "chores": [
+      {"name": "Walk dog", "emoji": "🐕", "recurrenceType": "daily"},
+      {"name": "Feed pets", "emoji": "🐾", "recurrenceType": "daily"},
+      {"name": "Clean cat litter", "emoji": "🐱", "recurrenceType": "daily"},
+      {"name": "Brush pet", "emoji": "🐕", "recurrenceType": "weekly"}
+    ]
+  },
+  {
+    "category": "Family",
+    "emoji": "👨‍👩‍👧",
+    "chores": [
+      {"name": "Pickup kids", "emoji": "🚗", "recurrenceType": "daily"},
+      {"name": "Drop off kids", "emoji": "🏫", "recurrenceType": "daily"},
+      {"name": "Pack school bags", "emoji": "🎒", "recurrenceType": "daily"},
+      {"name": "School lunch prep", "emoji": "🥪", "recurrenceType": "daily"}
+    ]
+  },
+  {
+    "category": "Shopping & Errands",
+    "emoji": "🛒",
+    "chores": [
+      {"name": "Grocery shop", "emoji": "🛒", "recurrenceType": "weekly"},
+      {"name": "Pharmacy run", "emoji": "💊", "recurrenceType": "monthly"},
+      {"name": "Check the mail", "emoji": "📬", "recurrenceType": "daily"},
+      {"name": "Return packages", "emoji": "📦", "recurrenceType": "one_off"}
+    ]
+  },
+  {
+    "category": "Outside & Garden",
+    "emoji": "🌿",
+    "chores": [
+      {"name": "Take out bins", "emoji": "♻️", "recurrenceType": "weekly"},
+      {"name": "Water plants", "emoji": "🌱", "recurrenceType": "daily"},
+      {"name": "Mow the lawn", "emoji": "🌿", "recurrenceType": "monthly"},
+      {"name": "Weed garden", "emoji": "🌻", "recurrenceType": "weekly"},
+      {"name": "Clean car", "emoji": "🚗", "recurrenceType": "monthly"}
+    ]
+  },
+  {
+    "category": "Admin",
+    "emoji": "📋",
+    "chores": [
+      {"name": "Pay bills", "emoji": "💳", "recurrenceType": "monthly"},
+      {"name": "Review budget", "emoji": "📊", "recurrenceType": "monthly"},
+      {"name": "Schedule appointments", "emoji": "📅", "recurrenceType": "one_off"}
+    ]
+  }
+]

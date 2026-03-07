@@ -97,6 +97,34 @@ service cloud.firestore {
           request.auth.uid in get(/databases/$(database)/documents/spaces/$(spaceId)).data.members;
       }
 
+      // ── Chores (sub-collection) ───────────────────────────────
+      match /chores/{choreId} {
+        allow read: if isAuthenticated() &&
+          request.auth.uid in get(/databases/$(database)/documents/spaces/$(spaceId)).data.members;
+        allow create: if isAuthenticated() &&
+          request.auth.uid in get(/databases/$(database)/documents/spaces/$(spaceId)).data.members &&
+          request.resource.data.createdBy == request.auth.uid;
+        allow update: if isAuthenticated() &&
+          request.auth.uid in get(/databases/$(database)/documents/spaces/$(spaceId)).data.members;
+        allow delete: if isAuthenticated() &&
+          request.auth.uid in get(/databases/$(database)/documents/spaces/$(spaceId)).data.members;
+      }
+
+      // ── Chore Completions (sub-collection) ────────────────────
+      match /chore_completions/{completionId} {
+        allow read: if isAuthenticated() &&
+          request.auth.uid in get(/databases/$(database)/documents/spaces/$(spaceId)).data.members;
+        allow create: if isAuthenticated() &&
+          request.auth.uid in get(/databases/$(database)/documents/spaces/$(spaceId)).data.members &&
+          request.resource.data.completedBy == request.auth.uid;
+        // Only allow updating hatTipBy field (not completedBy or other fields)
+        allow update: if isAuthenticated() &&
+          request.auth.uid in get(/databases/$(database)/documents/spaces/$(spaceId)).data.members &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['hatTipBy']);
+        allow delete: if isAuthenticated() &&
+          request.auth.uid in get(/databases/$(database)/documents/spaces/$(spaceId)).data.members;
+      }
+
       // ── HomePad Pending Notifications (managed by Cloud Functions) ──
       match /homepad_pending_notifications/{docId} {
         allow read, write: if false;

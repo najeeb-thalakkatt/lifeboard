@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:lifeboard/providers/activity_provider.dart';
+import 'package:lifeboard/providers/chore_provider.dart';
 import 'package:lifeboard/providers/homepad_provider.dart';
 
 /// Bottom navigation destinations for the app shell.
@@ -22,6 +23,8 @@ class BottomNavBar extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final unreadCount = ref.watch(unreadActivityCountProvider).valueOrNull ?? 0;
     final homePadBadge = ref.watch(homePadBadgeCountProvider);
+    final choreBadge = ref.watch(choreBadgeCountProvider);
+    final combinedBadge = homePadBadge + choreBadge;
 
     return NavigationBar(
       selectedIndex: currentIndex,
@@ -39,13 +42,13 @@ class BottomNavBar extends ConsumerWidget {
         ),
         NavigationDestination(
           icon: Badge(
-            isLabelVisible: homePadBadge > 0,
-            label: Text(homePadBadge > 99 ? '99+' : '$homePadBadge'),
+            isLabelVisible: combinedBadge > 0,
+            label: Text(combinedBadge > 99 ? '99+' : '$combinedBadge'),
             child: const Icon(Icons.shopping_cart_outlined),
           ),
           selectedIcon: Badge(
-            isLabelVisible: homePadBadge > 0,
-            label: Text(homePadBadge > 99 ? '99+' : '$homePadBadge'),
+            isLabelVisible: combinedBadge > 0,
+            label: Text(combinedBadge > 99 ? '99+' : '$combinedBadge'),
             child: const Icon(Icons.shopping_cart),
           ),
           label: 'HomePad',
