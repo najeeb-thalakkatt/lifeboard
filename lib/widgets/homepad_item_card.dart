@@ -109,7 +109,7 @@ class HomePadItemCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(10),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
+              color: Theme.of(context).extension<AppColorsExtension>()!.subtleShadow,
               blurRadius: 4,
               offset: const Offset(0, 1),
             ),

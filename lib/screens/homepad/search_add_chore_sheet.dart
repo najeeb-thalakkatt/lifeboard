@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:lifeboard/core/constants.dart';
 import 'package:lifeboard/providers/chore_provider.dart';
 import 'package:lifeboard/providers/space_provider.dart';
+import 'package:lifeboard/theme/app_colors.dart';
 import 'package:lifeboard/theme/app_text_styles.dart';
 
 /// Search-first unified sheet for adding chores.
@@ -676,7 +677,7 @@ class _RecurrenceSegmentedControl extends StatelessWidget {
                   boxShadow: isSelected
                       ? [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.08),
+                            color: Theme.of(context).extension<AppColorsExtension>()!.subtleShadow,
                             blurRadius: 4,
                             offset: const Offset(0, 1),
                           ),

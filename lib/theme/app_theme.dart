@@ -24,7 +24,7 @@ abstract final class AppTheme {
       useMaterial3: true,
       colorScheme: colorScheme,
       scaffoldBackgroundColor: AppColors.gradientTop,
-      extensions: const [AppColorsExtension.light],
+      extensions: [AppColorsExtension.light],
       textTheme: _textTheme(AppColors.textPrimary),
 
       // ── AppBar ─────────────────────────────────────────
@@ -210,7 +210,7 @@ abstract final class AppTheme {
       secondary: AppColors.accentWarm,
       surface: AppColors.darkSurface,
       error: AppColors.error,
-      onPrimary: Colors.white,
+      onPrimary: Color(0xFF1C1C1E),
       onSecondary: Colors.white,
       onSurface: AppColors.darkTextPrimary,
       onError: Colors.white,
@@ -220,14 +220,15 @@ abstract final class AppTheme {
       useMaterial3: true,
       colorScheme: colorScheme,
       scaffoldBackgroundColor: AppColors.darkScaffold,
-      extensions: const [AppColorsExtension.dark],
+      extensions: [AppColorsExtension.dark],
       textTheme: _textTheme(AppColors.darkTextPrimary),
 
       // ── AppBar ─────────────────────────────────────────
       appBarTheme: AppBarTheme(
         elevation: 0,
-        scrolledUnderElevation: 1,
-        backgroundColor: AppColors.darkSurface,
+        scrolledUnderElevation: 0,
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
         foregroundColor: AppColors.darkTextPrimary,
         titleTextStyle: GoogleFonts.nunito(
           fontSize: 20,
@@ -238,10 +239,11 @@ abstract final class AppTheme {
 
       // ── Cards ──────────────────────────────────────────
       cardTheme: CardThemeData(
-        elevation: 2,
-        shadowColor: AppColors.darkCardShadow,
+        elevation: 0,
+        shadowColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: AppColors.darkDivider.withValues(alpha: 0.5)),
         ),
         color: AppColors.darkCardSurface,
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -349,9 +351,10 @@ abstract final class AppTheme {
 
       // ── Navigation Bar (Material 3) ───────────────────
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: AppColors.darkSurface,
+        backgroundColor: AppColors.darkCardSurface,
         indicatorColor: AppColors.darkPrimaryContainer,
-        elevation: 4,
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
             return GoogleFonts.inter(
@@ -375,6 +378,7 @@ abstract final class AppTheme {
       floatingActionButtonTheme: FloatingActionButtonThemeData(
         backgroundColor: AppColors.darkPrimary,
         foregroundColor: Colors.white,
+        elevation: 4,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),

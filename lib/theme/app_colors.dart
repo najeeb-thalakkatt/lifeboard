@@ -86,6 +86,7 @@ class AppColorsExtension extends ThemeExtension<AppColorsExtension> {
     required this.gradientBottom,
     required this.scaffold,
     required this.cardSurface,
+    required this.subtleShadow,
   });
 
   final Color divider;
@@ -94,25 +95,28 @@ class AppColorsExtension extends ThemeExtension<AppColorsExtension> {
   final Color gradientBottom;
   final Color scaffold;
   final Color cardSurface;
+  final Color subtleShadow;
 
   /// Light mode values.
-  static const light = AppColorsExtension(
+  static final light = AppColorsExtension(
     divider: AppColors.divider,
     cardShadow: AppColors.cardShadow,
     gradientTop: AppColors.gradientTop,
     gradientBottom: AppColors.gradientBottom,
     scaffold: AppColors.background,
     cardSurface: AppColors.surface,
+    subtleShadow: Colors.black.withValues(alpha: 0.08),
   );
 
   /// Dark mode values.
-  static const dark = AppColorsExtension(
+  static final dark = AppColorsExtension(
     divider: AppColors.darkDivider,
     cardShadow: AppColors.darkCardShadow,
     gradientTop: AppColors.darkGradientTop,
     gradientBottom: AppColors.darkGradientBottom,
     scaffold: AppColors.darkScaffold,
     cardSurface: AppColors.darkCardSurface,
+    subtleShadow: Colors.white.withValues(alpha: 0.06),
   );
 
   @override
@@ -123,6 +127,7 @@ class AppColorsExtension extends ThemeExtension<AppColorsExtension> {
     Color? gradientBottom,
     Color? scaffold,
     Color? cardSurface,
+    Color? subtleShadow,
   }) {
     return AppColorsExtension(
       divider: divider ?? this.divider,
@@ -131,6 +136,7 @@ class AppColorsExtension extends ThemeExtension<AppColorsExtension> {
       gradientBottom: gradientBottom ?? this.gradientBottom,
       scaffold: scaffold ?? this.scaffold,
       cardSurface: cardSurface ?? this.cardSurface,
+      subtleShadow: subtleShadow ?? this.subtleShadow,
     );
   }
 
@@ -144,6 +150,7 @@ class AppColorsExtension extends ThemeExtension<AppColorsExtension> {
       gradientBottom: Color.lerp(gradientBottom, other.gradientBottom, t)!,
       scaffold: Color.lerp(scaffold, other.scaffold, t)!,
       cardSurface: Color.lerp(cardSurface, other.cardSurface, t)!,
+      subtleShadow: Color.lerp(subtleShadow, other.subtleShadow, t)!,
     );
   }
 }

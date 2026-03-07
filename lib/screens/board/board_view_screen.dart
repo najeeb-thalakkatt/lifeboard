@@ -980,7 +980,9 @@ class _MobileKanbanLayoutState extends ConsumerState<_MobileKanbanLayout> {
               child: CupertinoSlidingSegmentedControl<int>(
                 groupValue: _currentPage,
                 backgroundColor: colors.primaryContainer,
-                thumbColor: colors.primary,
+                thumbColor: Theme.of(context).brightness == Brightness.dark
+                    ? AppColors.primaryDark
+                    : colors.primary,
                 children: {
                   for (var i = 0; i < _kanbanStatuses.length; i++)
                     i: Padding(
@@ -1145,7 +1147,7 @@ class _MobileKanbanLayoutState extends ConsumerState<_MobileKanbanLayout> {
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.12),
+                color: Theme.of(context).extension<AppColorsExtension>()!.subtleShadow,
                 blurRadius: 12,
                 offset: const Offset(0, 4),
               ),

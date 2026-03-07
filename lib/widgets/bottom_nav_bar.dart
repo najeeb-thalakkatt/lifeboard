@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:lifeboard/providers/activity_provider.dart';
+import 'package:lifeboard/theme/app_colors.dart';
 import 'package:lifeboard/providers/chore_provider.dart';
 import 'package:lifeboard/providers/homepad_provider.dart';
 
@@ -26,50 +27,63 @@ class BottomNavBar extends ConsumerWidget {
     final choreBadge = ref.watch(choreBadgeCountProvider);
     final combinedBadge = homePadBadge + choreBadge;
 
-    return NavigationBar(
-      selectedIndex: currentIndex,
-      onDestinationSelected: onDestinationSelected,
-      destinations: [
-        const NavigationDestination(
-          icon: Icon(Icons.grid_view_outlined),
-          selectedIcon: Icon(Icons.grid_view),
-          label: 'Spaces',
-        ),
-        const NavigationDestination(
-          icon: Icon(Icons.calendar_today_outlined),
-          selectedIcon: Icon(Icons.calendar_today),
-          label: 'This Week',
-        ),
-        NavigationDestination(
-          icon: Badge(
-            isLabelVisible: combinedBadge > 0,
-            label: Text(combinedBadge > 99 ? '99+' : '$combinedBadge'),
-            child: const Icon(Icons.shopping_cart_outlined),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (isDark)
+          const Divider(
+            height: 0.5,
+            thickness: 0.5,
+            color: AppColors.darkDivider,
           ),
-          selectedIcon: Badge(
-            isLabelVisible: combinedBadge > 0,
-            label: Text(combinedBadge > 99 ? '99+' : '$combinedBadge'),
-            child: const Icon(Icons.shopping_cart),
-          ),
-          label: 'HomePad',
-        ),
-        NavigationDestination(
-          icon: Badge(
-            isLabelVisible: unreadCount > 0,
-            label: Text(unreadCount > 99 ? '99+' : '$unreadCount'),
-            child: const Icon(Icons.notifications_outlined),
-          ),
-          selectedIcon: Badge(
-            isLabelVisible: unreadCount > 0,
-            label: Text(unreadCount > 99 ? '99+' : '$unreadCount'),
-            child: const Icon(Icons.notifications),
-          ),
-          label: 'Activity',
-        ),
-        const NavigationDestination(
-          icon: Icon(Icons.person_outlined),
-          selectedIcon: Icon(Icons.person),
-          label: 'Profile',
+        NavigationBar(
+          selectedIndex: currentIndex,
+          onDestinationSelected: onDestinationSelected,
+          destinations: [
+            const NavigationDestination(
+              icon: Icon(Icons.grid_view_outlined),
+              selectedIcon: Icon(Icons.grid_view),
+              label: 'Spaces',
+            ),
+            const NavigationDestination(
+              icon: Icon(Icons.calendar_today_outlined),
+              selectedIcon: Icon(Icons.calendar_today),
+              label: 'This Week',
+            ),
+            NavigationDestination(
+              icon: Badge(
+                isLabelVisible: combinedBadge > 0,
+                label: Text(combinedBadge > 99 ? '99+' : '$combinedBadge'),
+                child: const Icon(Icons.shopping_cart_outlined),
+              ),
+              selectedIcon: Badge(
+                isLabelVisible: combinedBadge > 0,
+                label: Text(combinedBadge > 99 ? '99+' : '$combinedBadge'),
+                child: const Icon(Icons.shopping_cart),
+              ),
+              label: 'HomePad',
+            ),
+            NavigationDestination(
+              icon: Badge(
+                isLabelVisible: unreadCount > 0,
+                label: Text(unreadCount > 99 ? '99+' : '$unreadCount'),
+                child: const Icon(Icons.notifications_outlined),
+              ),
+              selectedIcon: Badge(
+                isLabelVisible: unreadCount > 0,
+                label: Text(unreadCount > 99 ? '99+' : '$unreadCount'),
+                child: const Icon(Icons.notifications),
+              ),
+              label: 'Activity',
+            ),
+            const NavigationDestination(
+              icon: Icon(Icons.person_outlined),
+              selectedIcon: Icon(Icons.person),
+              label: 'Profile',
+            ),
+          ],
         ),
       ],
     );

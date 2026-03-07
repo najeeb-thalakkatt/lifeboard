@@ -26,10 +26,8 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = AppColors.background;
-    final textColor = isDark ? colors.onSurface : Colors.white;
+    const bgColor = AppColors.background;
+    const textColor = Colors.white;
 
     return Scaffold(
       backgroundColor: bgColor,

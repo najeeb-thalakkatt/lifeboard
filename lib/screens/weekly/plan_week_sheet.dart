@@ -205,7 +205,7 @@ class _PlanWeekSheetState extends ConsumerState<PlanWeekSheet> {
                 color: Theme.of(context).scaffoldBackgroundColor,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
+                    color: Theme.of(context).extension<AppColorsExtension>()!.subtleShadow,
                     blurRadius: 8,
                     offset: const Offset(0, -2),
                   ),

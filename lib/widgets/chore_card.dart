@@ -163,7 +163,7 @@ class _ChoreCardState extends State<ChoreCard>
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.06),
+                color: Theme.of(context).extension<AppColorsExtension>()!.subtleShadow,
                 blurRadius: 4,
                 offset: const Offset(0, 1),
               ),
@@ -438,7 +438,7 @@ class DoneChoreCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: Theme.of(context).extension<AppColorsExtension>()!.subtleShadow,
             blurRadius: 2,
             offset: const Offset(0, 1),
           ),

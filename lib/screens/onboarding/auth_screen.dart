@@ -239,7 +239,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.08),
+                        color: Theme.of(context).extension<AppColorsExtension>()!.subtleShadow,
                         blurRadius: 16,
                         offset: const Offset(0, -4),
                       ),

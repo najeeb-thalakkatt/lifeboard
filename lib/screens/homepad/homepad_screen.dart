@@ -195,16 +195,35 @@ class _HomePadContentState extends ConsumerState<_HomePadContent> {
           ChoresTab(spaceId: spaceId),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          if (tabIndex == 0) {
-            _showAddItemSheet(context);
-          } else {
-            _showSearchAddChoreSheet(context);
+      floatingActionButton: Builder(
+        builder: (context) {
+          final fab = FloatingActionButton(
+            onPressed: () {
+              if (tabIndex == 0) {
+                _showAddItemSheet(context);
+              } else {
+                _showSearchAddChoreSheet(context);
+              }
+            },
+            tooltip: tabIndex == 0 ? 'Add item' : 'Add chore',
+            child: Icon(tabIndex == 0 ? Icons.add : Icons.add),
+          );
+          if (Theme.of(context).brightness == Brightness.dark) {
+            return Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.darkPrimary.withValues(alpha: 0.3),
+                    blurRadius: 12,
+                  ),
+                ],
+              ),
+              child: fab,
+            );
           }
+          return fab;
         },
-        tooltip: tabIndex == 0 ? 'Add item' : 'Add chore',
-        child: Icon(tabIndex == 0 ? Icons.add : Icons.add),
       ),
     );
   }
@@ -356,28 +375,37 @@ class _ShoppingTabContent extends ConsumerWidget {
                       Semantics(
                         label: 'Mark all items as bought',
                         button: true,
-                        child: Material(
-                          color: AppColors.statusDone,
-                          borderRadius: BorderRadius.circular(18),
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(18),
-                            onTap: () =>
-                                _markAllDone(context, ref, spaceId),
-                            child: Container(
-                              height: 36,
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 16),
-                              alignment: Alignment.center,
-                              child: Text(
-                                'All Done!',
-                                style: GoogleFonts.inter(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
+                        child: Builder(
+                          builder: (context) {
+                            final isDark = Theme.of(context).brightness == Brightness.dark;
+                            return Material(
+                              color: isDark
+                                  ? AppColors.statusDone.withValues(alpha: 0.15)
+                                  : AppColors.statusDone,
+                              borderRadius: BorderRadius.circular(18),
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(18),
+                                onTap: () =>
+                                    _markAllDone(context, ref, spaceId),
+                                child: Container(
+                                  height: 36,
+                                  padding:
+                                      const EdgeInsets.symmetric(horizontal: 16),
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    'All Done!',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: isDark
+                                          ? AppColors.statusDone
+                                          : Colors.white,
+                                    ),
+                                  ),
                                 ),
                               ),
-                            ),
-                          ),
+                            );
+                          },
                         ),
                       ),
                     ],
@@ -861,7 +889,9 @@ class _FilterChip extends StatelessWidget {
           decoration: BoxDecoration(
             color: isSelected
                 ? Theme.of(context).colorScheme.primary
-                : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.06),
+                : Theme.of(context).colorScheme.onSurface.withValues(
+                    alpha: Theme.of(context).brightness == Brightness.dark ? 0.12 : 0.06,
+                  ),
             borderRadius: BorderRadius.circular(18),
           ),
           alignment: Alignment.center,
@@ -875,7 +905,9 @@ class _FilterChip extends StatelessWidget {
                 style: GoogleFonts.inter(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
-                  color: isSelected ? Colors.white : Theme.of(context).colorScheme.onSurface,
+                  color: isSelected
+                      ? Theme.of(context).colorScheme.onPrimary
+                      : Theme.of(context).colorScheme.onSurface,
                 ),
               ),
             ],
@@ -914,7 +946,9 @@ class _EmptyState extends StatelessWidget {
           Text(
             'Browse below to add what you need',
             style: AppTextStyles.bodyMedium.copyWith(
-              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+              color: Theme.of(context).colorScheme.onSurface.withValues(
+                alpha: Theme.of(context).brightness == Brightness.dark ? 0.7 : 0.6,
+              ),
             ),
             textAlign: TextAlign.center,
           ),
