@@ -24,6 +24,29 @@ class WeeklyViewScreen extends ConsumerWidget {
     final colors = Theme.of(context).colorScheme;
 
     return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          'This Week',
+          style: GoogleFonts.nunito(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        actions: [
+          TextButton.icon(
+            onPressed: () => _showPlanWeekSheet(context),
+            icon: const Icon(Icons.edit_calendar, size: 18),
+            label: Text(
+              'Plan Week',
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
       body: allTasksAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => Center(
@@ -62,9 +85,8 @@ class WeeklyViewScreen extends ConsumerWidget {
                 // ── Header with week navigation ─────────────
                 SliverToBoxAdapter(
                   child: _WeekHeader(
-                  weekStart: weekStart,
-                  onPlanWeek: () => _showPlanWeekSheet(context),
-                ),
+                    weekStart: weekStart,
+                  ),
                 ),
 
                 // ── Weekly Summary Card ─────────────────────
@@ -163,13 +185,11 @@ class WeeklyViewScreen extends ConsumerWidget {
 // ── Week Header with Navigation ──────────────────────────────────────
 
 class _WeekHeader extends ConsumerWidget {
-  const _WeekHeader({required this.weekStart, required this.onPlanWeek});
+  const _WeekHeader({required this.weekStart});
   final DateTime weekStart;
-  final VoidCallback onPlanWeek;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final topPadding = MediaQuery.of(context).padding.top;
     final weekEnd = weekStart.add(const Duration(days: 6));
     final dateFormat = DateFormat('MMM d');
     final label =
@@ -179,51 +199,10 @@ class _WeekHeader extends ConsumerWidget {
     final colors = Theme.of(context).colorScheme;
 
     return Padding(
-      padding: EdgeInsets.fromLTRB(24, topPadding + 16, 24, 8),
+      padding: const EdgeInsets.fromLTRB(24, 8, 24, 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Text(
-                'This Week',
-                style: GoogleFonts.nunito(
-                  fontSize: 26,
-                  fontWeight: FontWeight.bold,
-                  color: colors.onSurface,
-                ),
-              ),
-              const Spacer(),
-              GestureDetector(
-                onTap: onPlanWeek,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: colors.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.edit_calendar, size: 16,
-                          color: colors.primary),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Plan Week',
-                        style: GoogleFonts.inter(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: colors.primary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
           Row(
             children: [
               IconButton(
@@ -465,7 +444,7 @@ class _WeeklyTaskCard extends ConsumerWidget {
       margin: const EdgeInsets.only(bottom: 8),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        onTap: () => context.go('/spaces/${entry.spaceId}/task/${task.id}'),
+        onTap: () => context.push('/board/task/${task.id}'),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(

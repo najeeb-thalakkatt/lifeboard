@@ -139,7 +139,7 @@ class FirestoreService {
         .where('members.$userId.role', whereIn: ['owner', 'member'])
         .snapshots()
         .map((snapshot) => snapshot.docs
-            .map((doc) => SpaceModel.fromFirestore(doc))
+            .map(SpaceModel.fromFirestore)
             .toList());
   }
 
@@ -520,7 +520,7 @@ class FirestoreService {
           .get(),
     );
     final results = await Future.wait(futures);
-    return results.fold<int>(0, (sum, snap) => sum + (snap.count ?? 0));
+    return results.fold<int>(0, (total, snap) => total + (snap.count ?? 0));
   }
 
   /// Returns completed tasks grouped by week (weekStart = Monday 00:00 UTC)

@@ -40,7 +40,45 @@ class _ChoresTabState extends ConsumerState<ChoresTab> {
 
     return choresAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, st) => Center(child: Text('Error: $e')),
+      error: (e, st) => Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.error_outline, size: 48,
+                  color: Theme.of(context).colorScheme.error),
+              const SizedBox(height: 16),
+              Text(
+                'Could not load chores',
+                style: GoogleFonts.nunito(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Something went wrong. Give it another try!',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.inter(
+                  fontSize: 14,
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.6),
+                ),
+              ),
+              const SizedBox(height: 16),
+              OutlinedButton.icon(
+                onPressed: () => ref.invalidate(choresStreamProvider(spaceId)),
+                icon: const Icon(Icons.refresh),
+                label: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      ),
       data: (allChores) {
         // Empty state — no chores at all
         if (allChores.isEmpty) {
@@ -234,21 +272,19 @@ class _ChoresTabState extends ConsumerState<ChoresTab> {
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
                     final chore = upcomingChores[index];
-                    return Opacity(
-                      opacity: 0.5,
-                      child: ChoreCard(
-                        chore: chore,
-                        assigneeName: chore.assigneeId != null
-                            ? memberProfiles[chore.assigneeId]
-                            : null,
-                        onComplete: () =>
-                            _completeChore(context, chore),
-                        onSkip: () => _skipChore(context, chore),
-                        onEdit: () =>
-                            _showEditChoreSheet(context, chore),
-                        onDelete: () =>
-                            _deleteChore(context, chore),
-                      ),
+                    return ChoreCard(
+                      chore: chore,
+                      assigneeName: chore.assigneeId != null
+                          ? memberProfiles[chore.assigneeId]
+                          : null,
+                      isUpcoming: true,
+                      onComplete: () =>
+                          _completeChore(context, chore),
+                      onSkip: () => _skipChore(context, chore),
+                      onEdit: () =>
+                          _showEditChoreSheet(context, chore),
+                      onDelete: () =>
+                          _deleteChore(context, chore),
                     );
                   },
                   childCount: upcomingChores.length,

@@ -19,7 +19,7 @@ class _SplashScreenState extends State<SplashScreen> {
     Future.delayed(const Duration(seconds: 2), () {
       if (mounted) {
         final user = FirebaseAuth.instance.currentUser;
-        context.go(user != null ? '/spaces' : '/welcome');
+        context.go(user != null ? '/board' : '/welcome');
       }
     });
   }

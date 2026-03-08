@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:lifeboard/models/chore_completion_model.dart';
 import 'package:lifeboard/models/chore_model.dart';
-import 'package:lifeboard/providers/homepad_provider.dart';
 import 'package:lifeboard/providers/space_provider.dart';
 
 // ── Common Chores Catalog (cached) ────────────────────────────────
@@ -110,7 +109,7 @@ final upcomingChoresProvider =
 
 /// Badge count: overdue chores for the selected space.
 final choreBadgeCountProvider = Provider<int>((ref) {
-  final spaceId = ref.watch(selectedHomePadSpaceProvider);
+  final spaceId = ref.watch(selectedSpaceProvider);
   if (spaceId == null) return 0;
 
   final todayChores = ref.watch(todayChoresProvider(spaceId));

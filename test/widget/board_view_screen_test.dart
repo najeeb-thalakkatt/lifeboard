@@ -73,6 +73,12 @@ Widget _buildTestApp({
 }) {
   return ProviderScope(
     overrides: [
+      selectedSpaceProvider.overrideWith((ref) {
+        final notifier = SelectedSpaceNotifier(ref);
+        // Set state directly for testing
+        notifier.state = 'space-1';
+        return notifier;
+      }),
       defaultBoardProvider('space-1').overrideWith((ref) {
         if (boardError != null) throw Exception(boardError);
         if (loadingBoard) return Completer<BoardModel>().future;
@@ -92,7 +98,7 @@ Widget _buildTestApp({
     ],
     child: MaterialApp(
       theme: AppTheme.light,
-      home: const BoardViewScreen(spaceId: 'space-1'),
+      home: const BoardViewScreen(),
     ),
   );
 }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -136,7 +138,7 @@ class _SearchAddChoreSheetState extends ConsumerState<SearchAddChoreSheet> {
           );
 
       if (mounted) {
-        HapticFeedback.mediumImpact();
+        unawaited(HapticFeedback.mediumImpact());
         Navigator.of(context).pop(true);
       }
     } catch (_) {
@@ -530,7 +532,7 @@ class _SearchAddChoreSheetState extends ConsumerState<SearchAddChoreSheet> {
                             color: Colors.white,
                           ),
                         )
-                      : Text(AppConstants.choreAddChore),
+                      : const Text(AppConstants.choreAddChore),
                 ),
               ),
             ),

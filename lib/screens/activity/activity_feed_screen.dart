@@ -38,6 +38,15 @@ class _ActivityFeedScreenState extends ConsumerState<ActivityFeedScreen> {
         : [AppColors.gradientTop, AppColors.gradientBottom];
 
     return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          'Activity',
+          style: GoogleFonts.nunito(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
       body: DecoratedBox(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -55,11 +64,6 @@ class _ActivityFeedScreenState extends ConsumerState<ActivityFeedScreen> {
           },
           child: CustomScrollView(
             slivers: [
-              // ── Header ────────────────────────────────────────
-              SliverToBoxAdapter(
-                child: _ActivityHeader(),
-              ),
-
               // ── Feed ──────────────────────────────────────────
               activityAsync.when(
                 loading: () => const SliverFillRemaining(
@@ -101,39 +105,6 @@ class _ActivityFeedScreenState extends ConsumerState<ActivityFeedScreen> {
   }
 }
 
-// ── Header ───────────────────────────────────────────────────────────
-
-class _ActivityHeader extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final topPadding = MediaQuery.of(context).padding.top;
-    final colors = Theme.of(context).colorScheme;
-    return Padding(
-      padding: EdgeInsets.fromLTRB(24, topPadding + 16, 24, 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Activity',
-            style: GoogleFonts.nunito(
-              fontSize: 26,
-              fontWeight: FontWeight.bold,
-              color: colors.onSurface,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'What\u2019s happening across your spaces',
-            style: GoogleFonts.inter(
-              fontSize: 14,
-              color: colors.onSurface.withValues(alpha: 0.6),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 // ── Activity Card ────────────────────────────────────────────────────
 
@@ -174,8 +145,8 @@ class _ActivityCard extends ConsumerWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: activity.taskId != null
-            ? () => context.go(
-                  '/spaces/${activity.spaceId}/task/${activity.taskId}',
+            ? () => context.push(
+                  '/board/task/${activity.taskId}',
                 )
             : null,
         child: IntrinsicHeight(
@@ -361,10 +332,11 @@ class _ReactionsRow extends StatelessWidget {
         final users = entry.value;
         final isMine = users.contains(currentUserId);
 
-        return GestureDetector(
+        return InkWell(
+          borderRadius: BorderRadius.circular(16),
           onTap: () => onToggle(emoji),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
               color: isMine
                   ? colors.primary.withValues(alpha: 0.15)
@@ -405,7 +377,7 @@ class _QuickReactionBar extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           onTap: () => onReact(emoji),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             child: Text(
               emoji,
               style: TextStyle(

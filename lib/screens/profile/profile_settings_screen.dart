@@ -21,7 +21,7 @@ import 'package:lifeboard/theme/app_colors.dart';
 import 'package:lifeboard/theme/app_text_styles.dart';
 import 'package:lifeboard/widgets/avatar_widget.dart';
 
-/// Profile & Settings screen (Phase 10).
+/// Settings screen — full-screen push from gear icon in app bar.
 class ProfileSettingsScreen extends ConsumerWidget {
   const ProfileSettingsScreen({super.key});
 
@@ -30,6 +30,15 @@ class ProfileSettingsScreen extends ConsumerWidget {
     final userAsync = ref.watch(currentUserProvider);
 
     return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          'Settings',
+          style: GoogleFonts.nunito(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
       body: userAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(
@@ -60,8 +69,6 @@ class _ProfileBody extends ConsumerWidget {
     final user = userAsync.valueOrNull;
     final spacesAsync = ref.watch(userSpacesProvider);
     final themeMode = ref.watch(themeModeProvider);
-    final statsAsync = ref.watch(spaceStatsProvider);
-    final topPadding = MediaQuery.of(context).padding.top;
     final colors = Theme.of(context).colorScheme;
 
     return RefreshIndicator(
@@ -69,31 +76,22 @@ class _ProfileBody extends ConsumerWidget {
       onRefresh: () async {
         ref.invalidate(currentUserProvider);
         ref.invalidate(userSpacesProvider);
-        ref.invalidate(spaceStatsProvider);
         await Future<void>.delayed(const Duration(milliseconds: 500));
       },
       child: ListView(
-        padding: EdgeInsets.fromLTRB(16, topPadding + 16, 16, 100),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
         children: [
-          // ── Header ──────────────────────────────────────────
-          Text(
-            'Profile',
-            style: GoogleFonts.nunito(
-              fontSize: 26,
-              fontWeight: FontWeight.bold,
-              color: colors.onSurface,
-            ),
-          ),
-          const SizedBox(height: 20),
-
           // ── Profile Card ────────────────────────────────────
           _ProfileCard(user: user),
           const SizedBox(height: 20),
 
-          // ── Our Stats ───────────────────────────────────────
-          const _SectionHeader(title: 'Our Stats'),
+          // ── Preferences ─────────────────────────────────────
+          const _SectionHeader(title: 'Preferences'),
           const SizedBox(height: 8),
-          _StatsCard(statsAsync: statsAsync),
+          _PreferencesCard(
+            user: user,
+            themeMode: themeMode,
+          ),
           const SizedBox(height: 20),
 
           // ── Spaces Management ───────────────────────────────
@@ -103,15 +101,6 @@ class _ProfileBody extends ConsumerWidget {
             loading: () => const _LoadingCard(),
             error: (_, __) => const _ErrorCard(message: 'Could not load spaces'),
             data: (spaces) => _SpacesList(spaces: spaces, userId: userId),
-          ),
-          const SizedBox(height: 20),
-
-          // ── Preferences ─────────────────────────────────────
-          const _SectionHeader(title: 'Preferences'),
-          const SizedBox(height: 8),
-          _PreferencesCard(
-            user: user,
-            themeMode: themeMode,
           ),
           const SizedBox(height: 20),
 
@@ -187,7 +176,7 @@ class _ProfileCardState extends ConsumerState<_ProfileCard> {
     final userId = FirebaseAuth.instance.currentUser?.uid;
     if (userId == null) return;
 
-    final storageService = this.ref.read(storageServiceProvider);
+    final storageService = ref.read(storageServiceProvider);
     final image = await storageService.pickImageFromGallery();
     if (image == null) return;
 
@@ -211,7 +200,7 @@ class _ProfileCardState extends ConsumerState<_ProfileCard> {
     final url = await snapshot.ref.getDownloadURL();
 
     if (!mounted) return;
-    await this.ref.read(profileActionProvider.notifier).updatePhotoUrl(url);
+    await ref.read(profileActionProvider.notifier).updatePhotoUrl(url);
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -456,182 +445,6 @@ class _MoodChip extends StatelessWidget {
       ),
     );
   }
-}
-
-// ── Stats Card ────────────────────────────────────────────────────
-
-class _StatsCard extends StatelessWidget {
-  const _StatsCard({required this.statsAsync});
-  final AsyncValue<SpaceStats> statsAsync;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return Card(
-      margin: EdgeInsets.zero,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: statsAsync.when(
-          loading: () => const Center(
-            child: Padding(
-              padding: EdgeInsets.all(16),
-              child: CircularProgressIndicator(),
-            ),
-          ),
-          error: (_, __) => Text(
-            'Could not load stats',
-            style: GoogleFonts.inter(color: colors.error),
-          ),
-          data: (stats) => Column(
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: _StatTile(
-                      icon: '🎉',
-                      value: '${stats.totalCompleted}',
-                      label: 'Tasks done',
-                    ),
-                  ),
-                  Expanded(
-                    child: _StatTile(
-                      icon: '🔥',
-                      value: '${stats.currentStreak}',
-                      label: 'Week streak',
-                    ),
-                  ),
-                  Expanded(
-                    child: _StatTile(
-                      icon: '🏆',
-                      value: '${stats.bestStreak}',
-                      label: 'Best streak',
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              const Divider(),
-              const SizedBox(height: 12),
-              // ── Fun Badges ────────────────────────────────
-              _BadgesRow(totalCompleted: stats.totalCompleted, currentStreak: stats.currentStreak),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _StatTile extends StatelessWidget {
-  const _StatTile({
-    required this.icon,
-    required this.value,
-    required this.label,
-  });
-  final String icon;
-  final String value;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return Column(
-      children: [
-        Text(icon, style: const TextStyle(fontSize: 28)),
-        const SizedBox(height: 6),
-        Text(
-          value,
-          style: GoogleFonts.nunito(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: colors.onSurface,
-          ),
-        ),
-        Text(
-          label,
-          style: GoogleFonts.inter(
-            fontSize: 12,
-            color: colors.onSurface.withValues(alpha: 0.6),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// ── Badges Row ────────────────────────────────────────────────────
-
-class _BadgesRow extends StatelessWidget {
-  const _BadgesRow({required this.totalCompleted, required this.currentStreak});
-  final int totalCompleted;
-  final int currentStreak;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final ext = Theme.of(context).extension<AppColorsExtension>()!;
-    final badges = <_Badge>[
-      _Badge(icon: '👶', name: 'First Steps', earned: totalCompleted >= 1),
-      _Badge(icon: '🤝', name: 'Team Player', earned: totalCompleted >= 10),
-      _Badge(icon: '🎯', name: 'On a Roll', earned: currentStreak >= 4),
-      _Badge(icon: '🚀', name: 'Unstoppable', earned: currentStreak >= 12),
-      _Badge(icon: '💯', name: 'Century', earned: totalCompleted >= 100),
-    ];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Badges',
-          style: GoogleFonts.nunito(
-            fontSize: 15,
-            fontWeight: FontWeight.bold,
-            color: colors.onSurface,
-          ),
-        ),
-        const SizedBox(height: 10),
-        Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          children: badges.map((badge) {
-            return Tooltip(
-              message: badge.name,
-              child: Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  color: badge.earned
-                      ? colors.primaryContainer
-                      : ext.cardSurface,
-                  borderRadius: BorderRadius.circular(12),
-                  border: badge.earned
-                      ? Border.all(color: AppColors.accentWarm, width: 2)
-                      : null,
-                ),
-                child: Center(
-                  child: Opacity(
-                    opacity: badge.earned ? 1.0 : 0.3,
-                    child: Text(
-                      badge.icon,
-                      style: const TextStyle(fontSize: 28),
-                    ),
-                  ),
-                ),
-              ),
-            );
-          }).toList(),
-        ),
-      ],
-    );
-  }
-}
-
-class _Badge {
-  const _Badge({required this.icon, required this.name, required this.earned});
-  final String icon;
-  final String name;
-  final bool earned;
 }
 
 // ── Spaces List ───────────────────────────────────────────────────

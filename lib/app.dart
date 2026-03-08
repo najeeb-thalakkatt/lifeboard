@@ -5,19 +5,20 @@ import 'package:go_router/go_router.dart';
 
 import 'package:lifeboard/models/space_model.dart';
 import 'package:lifeboard/providers/auth_provider.dart';
+import 'package:lifeboard/providers/space_provider.dart';
 import 'package:lifeboard/screens/onboarding/auth_screen.dart';
 import 'package:lifeboard/screens/onboarding/create_join_space_screen.dart';
 import 'package:lifeboard/screens/onboarding/invite_partner_screen.dart';
 import 'package:lifeboard/screens/onboarding/welcome_screen.dart';
 import 'package:lifeboard/theme/app_theme.dart';
-import 'package:lifeboard/screens/home/home_dashboard_screen.dart';
 import 'package:lifeboard/screens/board/board_view_screen.dart';
+import 'package:lifeboard/screens/chores/chores_screen.dart';
+import 'package:lifeboard/screens/buylist/buylist_screen.dart';
 import 'package:lifeboard/screens/task/task_detail_screen.dart';
 import 'package:lifeboard/widgets/responsive_shell.dart';
 import 'package:lifeboard/screens/weekly/weekly_view_screen.dart';
 import 'package:lifeboard/screens/profile/profile_settings_screen.dart';
 import 'package:lifeboard/screens/activity/activity_feed_screen.dart';
-import 'package:lifeboard/screens/homepad/homepad_screen.dart';
 import 'package:lifeboard/screens/splash/splash_screen.dart';
 import 'package:lifeboard/providers/profile_provider.dart';
 
@@ -56,15 +57,22 @@ final routerProvider = Provider<GoRouter>((ref) {
         return '/welcome';
       }
 
-      // Authenticated but on an unauth-only route → send to spaces
+      // Authenticated but on an unauth-only route → send to board
       if (isAuthenticated && isUnauthOnly) {
-        return '/spaces';
+        return '/board';
       }
 
       // Auth no-shell routes require authentication
       if (!isAuthenticated && isAuthNoShell) {
         return '/welcome';
       }
+
+      // ── Backward-compat redirects ──
+      if (currentPath == '/spaces' || currentPath.startsWith('/spaces/')) {
+        return '/board';
+      }
+      if (currentPath == '/homepad') return '/buylist';
+      if (currentPath == '/profile') return '/settings';
 
       return null; // No redirect needed.
     },
@@ -99,6 +107,35 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
       ),
 
+      // ── Full-screen pushes (no bottom nav, has back button) ──
+      GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
+        path: '/weekly',
+        builder: (context, state) => const WeeklyViewScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
+        path: '/activity',
+        builder: (context, state) => const ActivityFeedScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
+        path: '/settings',
+        builder: (context, state) => const ProfileSettingsScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
+        path: '/board/task/:taskId',
+        builder: (context, state) {
+          final taskId = state.pathParameters['taskId']!;
+          final spaceId = ref.read(selectedSpaceProvider) ?? '';
+          return TaskDetailScreen(
+            spaceId: spaceId,
+            taskId: taskId,
+          );
+        },
+      ),
+
       // ── Authenticated routes (with responsive nav shell) ──
       ShellRoute(
         navigatorKey: _shellNavigatorKey,
@@ -108,55 +145,21 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
         routes: [
           GoRoute(
-            path: '/spaces',
+            path: '/board',
             pageBuilder: (context, state) => const NoTransitionPage(
-              child: HomeDashboardScreen(),
-            ),
-            routes: [
-              GoRoute(
-                path: ':spaceId',
-                builder: (context, state) {
-                  final spaceId = state.pathParameters['spaceId']!;
-                  return BoardViewScreen(spaceId: spaceId);
-                },
-                routes: [
-                  GoRoute(
-                    path: 'task/:taskId',
-                    builder: (context, state) {
-                      final spaceId = state.pathParameters['spaceId']!;
-                      final taskId = state.pathParameters['taskId']!;
-                      return TaskDetailScreen(
-                        spaceId: spaceId,
-                        taskId: taskId,
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ],
-          ),
-          GoRoute(
-            path: '/weekly',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: WeeklyViewScreen(),
+              child: BoardViewScreen(),
             ),
           ),
           GoRoute(
-            path: '/homepad',
+            path: '/chores',
             pageBuilder: (context, state) => const NoTransitionPage(
-              child: HomePadScreen(),
+              child: ChoresScreen(),
             ),
           ),
           GoRoute(
-            path: '/activity',
+            path: '/buylist',
             pageBuilder: (context, state) => const NoTransitionPage(
-              child: ActivityFeedScreen(),
-            ),
-          ),
-          GoRoute(
-            path: '/profile',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: ProfileSettingsScreen(),
+              child: BuyListScreen(),
             ),
           ),
         ],

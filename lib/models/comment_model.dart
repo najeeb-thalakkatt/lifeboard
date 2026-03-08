@@ -39,14 +39,14 @@ abstract class CommentModel with _$CommentModel {
       'text': model.text,
       'authorId': model.authorId,
       'reactions': model.reactions.map(
-        (emoji, userIds) => MapEntry(emoji, userIds),
+        MapEntry.new,
       ),
       'createdAt': Timestamp.fromDate(model.createdAt),
     };
   }
 }
 
-/// Parses the reactions map from Firestore (emoji → List<userId>).
+/// Parses the reactions map from Firestore (emoji to List of userId).
 Map<String, List<String>> _parseReactions(dynamic raw) {
   if (raw == null || raw is! Map) return {};
   return raw.map<String, List<String>>(

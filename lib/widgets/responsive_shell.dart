@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'package:lifeboard/providers/navigation_provider.dart';
 import 'package:lifeboard/widgets/bottom_nav_bar.dart';
 
 /// Responsive navigation shell that adapts to screen width:
 /// - Mobile (< 600px): bottom navigation bar
 /// - Tablet (600–1024px): navigation rail
 /// - Desktop (> 1024px): permanent side drawer
-class ResponsiveShell extends StatelessWidget {
+class ResponsiveShell extends ConsumerWidget {
   const ResponsiveShell({
     super.key,
     required this.currentLocation,
@@ -17,33 +19,23 @@ class ResponsiveShell extends StatelessWidget {
   final String currentLocation;
   final Widget child;
 
-  static const _paths = ['/spaces', '/weekly', '/homepad', '/activity', '/profile'];
+  static const _paths = ['/board', '/chores', '/buylist'];
 
   static const _destinations = [
     _NavItem(
-      icon: Icons.home_outlined,
-      selectedIcon: Icons.home,
-      label: 'Spaces',
+      icon: Icons.dashboard_outlined,
+      selectedIcon: Icons.dashboard,
+      label: 'Board',
     ),
     _NavItem(
-      icon: Icons.calendar_today_outlined,
-      selectedIcon: Icons.calendar_today,
-      label: 'This Week',
+      icon: Icons.task_alt_outlined,
+      selectedIcon: Icons.task_alt,
+      label: 'Chores',
     ),
     _NavItem(
-      icon: Icons.shopping_cart_outlined,
-      selectedIcon: Icons.shopping_cart,
-      label: 'HomePad',
-    ),
-    _NavItem(
-      icon: Icons.notifications_outlined,
-      selectedIcon: Icons.notifications,
-      label: 'Activity',
-    ),
-    _NavItem(
-      icon: Icons.person_outlined,
-      selectedIcon: Icons.person,
-      label: 'Profile',
+      icon: Icons.shopping_bag_outlined,
+      selectedIcon: Icons.shopping_bag,
+      label: 'Buy List',
     ),
   ];
 
@@ -52,16 +44,15 @@ class ResponsiveShell extends StatelessWidget {
     return index < 0 ? 0 : index;
   }
 
-  void _onNavigate(BuildContext context, int index) {
-    // If already on a sub-route of the target path, don't re-navigate
-    // to the parent (avoids the redirect spinner on Spaces tab).
+  void _onNavigate(BuildContext context, WidgetRef ref, int index) {
     final target = _paths[index];
     if (currentLocation.startsWith('$target/')) return;
+    ref.read(lastTabProvider.notifier).setTab(index);
     context.go(target);
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
@@ -72,7 +63,7 @@ class ResponsiveShell extends StatelessWidget {
         if (width > 1024) {
           return _DesktopLayout(
             currentIndex: currentIdx,
-            onNavigate: (i) => _onNavigate(context, i),
+            onNavigate: (i) => _onNavigate(context, ref, i),
             child: child,
           );
         }
@@ -81,7 +72,7 @@ class ResponsiveShell extends StatelessWidget {
         if (width >= 600) {
           return _TabletLayout(
             currentIndex: currentIdx,
-            onNavigate: (i) => _onNavigate(context, i),
+            onNavigate: (i) => _onNavigate(context, ref, i),
             child: child,
           );
         }
@@ -89,7 +80,7 @@ class ResponsiveShell extends StatelessWidget {
         // ── Mobile (< 600px): bottom nav bar ─────────────
         return _MobileLayout(
           currentIndex: currentIdx,
-          onNavigate: (i) => _onNavigate(context, i),
+          onNavigate: (i) => _onNavigate(context, ref, i),
           child: child,
         );
       },

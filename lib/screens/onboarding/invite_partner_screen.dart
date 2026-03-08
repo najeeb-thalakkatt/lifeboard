@@ -24,7 +24,7 @@ class InvitePartnerScreen extends StatelessWidget {
         automaticallyImplyLeading: false,
         actions: [
           TextButton(
-            onPressed: () => context.go('/spaces'),
+            onPressed: () => context.go('/board'),
             child: Text(
               'Skip for now',
               style: AppTextStyles.bodyMedium.copyWith(
@@ -145,7 +145,7 @@ class InvitePartnerScreen extends StatelessWidget {
                 width: double.infinity,
                 height: 52,
                 child: OutlinedButton(
-                  onPressed: () => context.go('/spaces'),
+                  onPressed: () => context.go('/board'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: colors.primary,
                     side: BorderSide(color: ext.divider),

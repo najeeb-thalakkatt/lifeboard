@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -38,9 +40,9 @@ Future<void> main() async {
     if (user != null) {
       await notificationService.initialize();
       // Ensure Firestore user doc has displayName and photoUrl synced
-      _syncUserProfile(user);
+      unawaited(_syncUserProfile(user));
       // Reschedule local reminders for all tasks with due dates
-      _rescheduleReminders(user.uid, notificationService);
+      unawaited(_rescheduleReminders(user.uid, notificationService));
     }
   });
 

@@ -54,7 +54,7 @@ class TaskNotifier extends StateNotifier<AsyncValue<void>> {
         task: task,
       );
       // Schedule local reminder if the task has a due date
-      if (created != null && created.dueDate != null) {
+      if (created.dueDate != null) {
         _scheduleReminder(created);
       }
       state = const AsyncData(null);

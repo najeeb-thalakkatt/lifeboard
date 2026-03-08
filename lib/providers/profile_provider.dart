@@ -279,6 +279,13 @@ class ProfileActionNotifier extends StateNotifier<AsyncValue<void>> {
     } catch (_) {
       // Best-effort token cleanup — don't block sign-out
     }
+
+    // Cancel active Firestore listeners before revoking auth
+    // to avoid permission-denied errors during the sign-out window.
+    _ref.invalidate(currentUserProvider);
+    _ref.invalidate(userSpacesProvider);
+    _ref.invalidate(unreadActivityCountProvider);
+
     final authService = _ref.read(authServiceProvider);
     await authService.signOut();
   }

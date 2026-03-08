@@ -91,11 +91,11 @@ final homePadMergedItemsProvider =
 
   return catalogAsync.when(
     loading: () => const AsyncLoading(),
-    error: (e, st) => AsyncError(e, st),
+    error: AsyncError.new,
     data: (catalog) {
       return firestoreAsync.when(
         loading: () => AsyncData(catalog),
-        error: (e, st) => AsyncError(e, st),
+        error: AsyncError.new,
         data: (firestoreItems) {
           // Build a map of Firestore items by ID for quick lookup
           final firestoreMap = {
@@ -169,7 +169,7 @@ final homePadBadgeCountProvider = Provider<int>((ref) {
   final userId = FirebaseAuth.instance.currentUser?.uid;
   if (userId == null) return 0;
 
-  final spaceId = ref.watch(selectedHomePadSpaceProvider);
+  final spaceId = ref.watch(selectedSpaceProvider);
   if (spaceId == null) return 0;
 
   final mergedAsync = ref.watch(homePadMergedItemsProvider(spaceId));

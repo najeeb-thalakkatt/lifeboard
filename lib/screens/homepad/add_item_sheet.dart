@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -70,7 +72,7 @@ class _AddItemSheetState extends ConsumerState<AddItemSheet> {
   }
 
   Future<void> _addCatalogItem(HomePadItem item) async {
-    HapticFeedback.lightImpact();
+    unawaited(HapticFeedback.lightImpact());
     await ref.read(homePadActionProvider.notifier).markToBuy(
           spaceId: widget.spaceId,
           item: item,
@@ -262,7 +264,7 @@ class _AddItemSheetState extends ConsumerState<AddItemSheet> {
                 ),
               ),
               if (isAlreadyAdded)
-                Icon(
+                const Icon(
                   Icons.check_circle,
                   color: AppColors.statusDone,
                   size: 22,

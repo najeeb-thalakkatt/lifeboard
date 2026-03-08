@@ -14,7 +14,6 @@ import 'package:lifeboard/models/user_model.dart';
 import 'package:lifeboard/providers/auth_provider.dart';
 import 'package:lifeboard/providers/space_provider.dart';
 import 'package:lifeboard/providers/task_provider.dart';
-import 'package:lifeboard/services/firestore_service.dart';
 import 'package:lifeboard/services/storage_service.dart';
 import 'package:lifeboard/theme/app_colors.dart';
 import 'package:lifeboard/theme/app_text_styles.dart';

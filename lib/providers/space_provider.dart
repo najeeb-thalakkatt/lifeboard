@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:lifeboard/models/space_model.dart';
 import 'package:lifeboard/providers/auth_provider.dart';
@@ -87,6 +88,58 @@ final spaceActionProvider =
 ///
 /// Watches the space members list, then resolves each user's Firestore doc
 /// to get their real displayName instead of raw UIDs.
+// ── Global Selected Space ──────────────────────────────────────────
+
+const _selectedSpaceKey = 'selected_space_id';
+
+/// Manages the globally selected space across all tabs.
+/// Persists the selection to SharedPreferences.
+class SelectedSpaceNotifier extends StateNotifier<String?> {
+  SelectedSpaceNotifier(this._ref) : super(null) {
+    _init();
+  }
+
+  final Ref _ref;
+
+  Future<void> _init() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedId = prefs.getString(_selectedSpaceKey);
+    final spaces = _ref.read(userSpacesProvider).valueOrNull ?? [];
+
+    if (savedId != null && spaces.any((s) => s.id == savedId)) {
+      state = savedId;
+    } else if (spaces.isNotEmpty) {
+      state = spaces.first.id;
+    }
+
+    // React to space list changes (e.g. user leaves a space)
+    _ref.listen(userSpacesProvider, (_, next) {
+      final currentSpaces = next.valueOrNull ?? [];
+      if (currentSpaces.isEmpty) {
+        state = null;
+        return;
+      }
+      // If current selection is still valid, keep it
+      if (state != null && currentSpaces.any((s) => s.id == state)) return;
+      // Otherwise fall back to first space
+      state = currentSpaces.first.id;
+    });
+  }
+
+  Future<void> select(String spaceId) async {
+    state = spaceId;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_selectedSpaceKey, spaceId);
+  }
+}
+
+final selectedSpaceProvider =
+    StateNotifierProvider<SelectedSpaceNotifier, String?>((ref) {
+  return SelectedSpaceNotifier(ref);
+});
+
+// ── Member Profiles ───────────────────────────────────────────────
+
 final spaceMemberProfilesProvider =
     Provider.family<Map<String, String>, String>((ref, spaceId) {
   final membersAsync = ref.watch(spaceMembersProvider(spaceId));

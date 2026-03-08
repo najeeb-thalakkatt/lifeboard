@@ -414,7 +414,7 @@ class _CompactTaskTile extends StatelessWidget {
                   child: Row(
                     children: [
                       if (task.isBlocked) ...[
-                        Icon(Icons.block, size: 12,
+                        const Icon(Icons.block, size: 12,
                             color: AppColors.error),
                         const SizedBox(width: 4),
                       ],

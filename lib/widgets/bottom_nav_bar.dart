@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:lifeboard/providers/activity_provider.dart';
 import 'package:lifeboard/theme/app_colors.dart';
 import 'package:lifeboard/providers/chore_provider.dart';
 import 'package:lifeboard/providers/homepad_provider.dart';
 
 /// Bottom navigation destinations for the app shell.
 ///
-/// Uses Material 3 [NavigationBar] which picks up the theme from
-/// [AppTheme.light.navigationBarTheme].
+/// 3 tabs: Board, Chores, Buy List.
+/// Activity and Profile are now accessed via app bar icons.
 class BottomNavBar extends ConsumerWidget {
   const BottomNavBar({
     super.key,
@@ -22,10 +21,8 @@ class BottomNavBar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final unreadCount = ref.watch(unreadActivityCountProvider).valueOrNull ?? 0;
     final homePadBadge = ref.watch(homePadBadgeCountProvider);
     final choreBadge = ref.watch(choreBadgeCountProvider);
-    final combinedBadge = homePadBadge + choreBadge;
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -43,45 +40,35 @@ class BottomNavBar extends ConsumerWidget {
           onDestinationSelected: onDestinationSelected,
           destinations: [
             const NavigationDestination(
-              icon: Icon(Icons.grid_view_outlined),
-              selectedIcon: Icon(Icons.grid_view),
-              label: 'Spaces',
-            ),
-            const NavigationDestination(
-              icon: Icon(Icons.calendar_today_outlined),
-              selectedIcon: Icon(Icons.calendar_today),
-              label: 'This Week',
+              icon: Icon(Icons.dashboard_outlined),
+              selectedIcon: Icon(Icons.dashboard),
+              label: 'Board',
             ),
             NavigationDestination(
               icon: Badge(
-                isLabelVisible: combinedBadge > 0,
-                label: Text(combinedBadge > 99 ? '99+' : '$combinedBadge'),
-                child: const Icon(Icons.shopping_cart_outlined),
+                isLabelVisible: choreBadge > 0,
+                label: Text(choreBadge > 99 ? '99+' : '$choreBadge'),
+                child: const Icon(Icons.task_alt_outlined),
               ),
               selectedIcon: Badge(
-                isLabelVisible: combinedBadge > 0,
-                label: Text(combinedBadge > 99 ? '99+' : '$combinedBadge'),
-                child: const Icon(Icons.shopping_cart),
+                isLabelVisible: choreBadge > 0,
+                label: Text(choreBadge > 99 ? '99+' : '$choreBadge'),
+                child: const Icon(Icons.task_alt),
               ),
-              label: 'HomePad',
+              label: 'Chores',
             ),
             NavigationDestination(
               icon: Badge(
-                isLabelVisible: unreadCount > 0,
-                label: Text(unreadCount > 99 ? '99+' : '$unreadCount'),
-                child: const Icon(Icons.notifications_outlined),
+                isLabelVisible: homePadBadge > 0,
+                label: Text(homePadBadge > 99 ? '99+' : '$homePadBadge'),
+                child: const Icon(Icons.shopping_bag_outlined),
               ),
               selectedIcon: Badge(
-                isLabelVisible: unreadCount > 0,
-                label: Text(unreadCount > 99 ? '99+' : '$unreadCount'),
-                child: const Icon(Icons.notifications),
+                isLabelVisible: homePadBadge > 0,
+                label: Text(homePadBadge > 99 ? '99+' : '$homePadBadge'),
+                child: const Icon(Icons.shopping_bag),
               ),
-              label: 'Activity',
-            ),
-            const NavigationDestination(
-              icon: Icon(Icons.person_outlined),
-              selectedIcon: Icon(Icons.person),
-              label: 'Profile',
+              label: 'Buy List',
             ),
           ],
         ),

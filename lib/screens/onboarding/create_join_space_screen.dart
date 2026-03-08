@@ -70,7 +70,7 @@ class _CreateJoinSpaceScreenState extends ConsumerState<CreateJoinSpaceScreen> {
             userId: user.uid,
           );
       if (mounted) {
-        context.go('/spaces');
+        context.go('/board');
       }
     } on SpaceNotFoundException {
       _showError('No space found with that invite code');

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -16,6 +18,7 @@ class ChoreCard extends StatefulWidget {
     required this.onEdit,
     this.onDelete,
     this.assigneeName,
+    this.isUpcoming = false,
   });
 
   final Chore chore;
@@ -24,6 +27,7 @@ class ChoreCard extends StatefulWidget {
   final VoidCallback onEdit;
   final VoidCallback? onDelete;
   final String? assigneeName;
+  final bool isUpcoming;
 
   @override
   State<ChoreCard> createState() => _ChoreCardState();
@@ -123,6 +127,7 @@ class _ChoreCardState extends State<ChoreCard>
   Widget build(BuildContext context) {
     final accent = _accentColor();
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final dimAlpha = widget.isUpcoming ? 0.55 : 1.0;
 
     return Dismissible(
       key: ValueKey('chore_${widget.chore.id}'),
@@ -145,7 +150,7 @@ class _ChoreCardState extends State<ChoreCard>
         ),
       ),
       confirmDismiss: (direction) async {
-        HapticFeedback.lightImpact();
+        unawaited(HapticFeedback.lightImpact());
         widget.onSkip();
         return false;
       },
@@ -215,7 +220,7 @@ class _ChoreCardState extends State<ChoreCard>
                           style: GoogleFonts.inter(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
-                            color: Theme.of(context).colorScheme.onSurface,
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: dimAlpha),
                             decoration: _completing
                                 ? TextDecoration.lineThrough
                                 : null,
@@ -246,7 +251,7 @@ class _ChoreCardState extends State<ChoreCard>
                                   color: Theme.of(context)
                                       .colorScheme
                                       .onSurface
-                                      .withValues(alpha: 0.6),
+                                      .withValues(alpha: widget.isUpcoming ? 0.4 : 0.6),
                                 ),
                               ),
                             ),
@@ -257,7 +262,7 @@ class _ChoreCardState extends State<ChoreCard>
                               style: GoogleFonts.inter(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w500,
-                                color: accent,
+                                color: widget.isUpcoming ? accent.withValues(alpha: 0.6) : accent,
                               ),
                             ),
                             if (widget.assigneeName != null ||

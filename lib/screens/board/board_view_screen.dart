@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -8,19 +10,16 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:lifeboard/core/constants.dart';
-import 'package:lifeboard/core/errors/app_exceptions.dart';
 import 'package:lifeboard/models/board_model.dart';
-import 'package:lifeboard/models/space_model.dart';
 import 'package:lifeboard/models/task_model.dart';
 import 'package:lifeboard/providers/board_provider.dart';
 import 'package:lifeboard/providers/space_provider.dart';
 import 'package:lifeboard/providers/task_provider.dart';
 import 'package:lifeboard/screens/board/compact_kanban_column.dart';
 import 'package:lifeboard/screens/board/kanban_column.dart';
-import 'package:lifeboard/screens/home/home_dashboard_screen.dart';
 import 'package:lifeboard/theme/app_colors.dart';
 import 'package:lifeboard/theme/app_text_styles.dart';
-import 'package:lifeboard/widgets/shared_app_bar.dart';
+import 'package:lifeboard/widgets/app_shell_bar.dart';
 
 /// The statuses (columns) shown on the kanban board.
 const _kanbanStatuses = ['todo', 'in_progress', 'done'];
@@ -69,9 +68,7 @@ Future<bool> _checkWipLimit(
 
 /// Main kanban board screen displaying tasks in 3 columns.
 class BoardViewScreen extends ConsumerStatefulWidget {
-  const BoardViewScreen({super.key, required this.spaceId});
-
-  final String spaceId;
+  const BoardViewScreen({super.key});
 
   @override
   ConsumerState<BoardViewScreen> createState() => _BoardViewScreenState();
@@ -82,44 +79,51 @@ class _BoardViewScreenState extends ConsumerState<BoardViewScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final boardsAsync = ref.watch(boardsProvider(widget.spaceId));
-    final defaultBoard = ref.watch(defaultBoardProvider(widget.spaceId));
-    final spacesAsync = ref.watch(userSpacesProvider);
-    final allSpaces = spacesAsync.valueOrNull ?? [];
+    final spaceId = ref.watch(selectedSpaceProvider);
+
+    if (spaceId == null) {
+      return const Scaffold(
+        appBar: AppShellBar(currentTab: AppTab.board),
+        body: Center(
+          child: Text('Join or create a space to use Board'),
+        ),
+      );
+    }
+
+    final boardsAsync = ref.watch(boardsProvider(spaceId));
+    final defaultBoard = ref.watch(defaultBoardProvider(spaceId));
 
     // Determine which board to show
     return boardsAsync.when(
       loading: () => defaultBoard.when(
-        loading: () => Scaffold(
-          appBar: const SharedAppBar(title: 'Board'),
-          body: const Center(child: CircularProgressIndicator()),
+        loading: () => const Scaffold(
+          appBar: AppShellBar(currentTab: AppTab.board),
+          body: Center(child: CircularProgressIndicator()),
         ),
-        error: (error, _) => _buildError(),
+        error: (error, _) => _buildError(spaceId),
         data: (board) => _BoardContent(
-          spaceId: widget.spaceId,
+          spaceId: spaceId,
           boardId: board.id,
           boardName: board.name,
-          allSpaces: allSpaces,
         ),
       ),
-      error: (error, _) => _buildError(),
+      error: (error, _) => _buildError(spaceId),
       data: (boards) {
         if (boards.isEmpty) {
           // Trigger default board creation
           return defaultBoard.when(
-            loading: () => Scaffold(
-              appBar: const SharedAppBar(title: 'Board'),
-              body: const Center(child: CircularProgressIndicator()),
+            loading: () => const Scaffold(
+              appBar: AppShellBar(currentTab: AppTab.board),
+              body: Center(child: CircularProgressIndicator()),
             ),
-            error: (_, __) => _buildError(),
+            error: (_, __) => _buildError(spaceId),
             data: (board) => _BoardContent(
-              spaceId: widget.spaceId,
+              spaceId: spaceId,
               boardId: board.id,
               boardName: board.name,
               allBoards: [board],
               onBoardSelected: (id) => setState(() => _selectedBoardId = id),
-              onCreateBoard: () => _createBoard(context),
-              allSpaces: allSpaces,
+              onCreateBoard: () => _createBoard(context, spaceId),
             ),
           );
         }
@@ -133,21 +137,20 @@ class _BoardViewScreenState extends ConsumerState<BoardViewScreen> {
             : boards.first;
 
         return _BoardContent(
-          spaceId: widget.spaceId,
+          spaceId: spaceId,
           boardId: activeBoard.id,
           boardName: activeBoard.name,
           allBoards: boards,
           onBoardSelected: (id) => setState(() => _selectedBoardId = id),
-          onCreateBoard: () => _createBoard(context),
-          allSpaces: allSpaces,
+          onCreateBoard: () => _createBoard(context, spaceId),
         );
       },
     );
   }
 
-  Widget _buildError() {
+  Widget _buildError(String spaceId) {
     return Scaffold(
-      appBar: const SharedAppBar(title: 'Board'),
+      appBar: const AppShellBar(currentTab: AppTab.board),
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -156,8 +159,8 @@ class _BoardViewScreenState extends ConsumerState<BoardViewScreen> {
             const SizedBox(height: 12),
             FilledButton(
               onPressed: () {
-                ref.invalidate(boardsProvider(widget.spaceId));
-                ref.invalidate(defaultBoardProvider(widget.spaceId));
+                ref.invalidate(boardsProvider(spaceId));
+                ref.invalidate(defaultBoardProvider(spaceId));
               },
               child: const Text('Retry'),
             ),
@@ -167,7 +170,7 @@ class _BoardViewScreenState extends ConsumerState<BoardViewScreen> {
     );
   }
 
-  Future<void> _createBoard(BuildContext context) async {
+  Future<void> _createBoard(BuildContext context, String spaceId) async {
     final name = await showDialog<String>(
       context: context,
       builder: (ctx) {
@@ -199,7 +202,7 @@ class _BoardViewScreenState extends ConsumerState<BoardViewScreen> {
     if (name != null && name.isNotEmpty) {
       final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
       final board = await ref.read(firestoreServiceProvider).createBoard(
-        spaceId: widget.spaceId,
+        spaceId: spaceId,
         name: name,
         userId: userId,
       );
@@ -216,7 +219,6 @@ class _BoardContent extends ConsumerStatefulWidget {
     this.allBoards,
     this.onBoardSelected,
     this.onCreateBoard,
-    this.allSpaces,
   });
 
   final String spaceId;
@@ -225,7 +227,6 @@ class _BoardContent extends ConsumerStatefulWidget {
   final List<BoardModel>? allBoards;
   final ValueChanged<String>? onBoardSelected;
   final VoidCallback? onCreateBoard;
-  final List<SpaceModel>? allSpaces;
 
   @override
   ConsumerState<_BoardContent> createState() => _BoardContentState();
@@ -240,16 +241,6 @@ class _BoardContentState extends ConsumerState<_BoardContent> {
   void initState() {
     super.initState();
     _loadViewMode();
-    // Persist last visited space
-    saveLastSpaceId(widget.spaceId);
-  }
-
-  @override
-  void didUpdateWidget(covariant _BoardContent oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.spaceId != widget.spaceId) {
-      saveLastSpaceId(widget.spaceId);
-    }
   }
 
   Future<void> _loadViewMode() async {
@@ -278,22 +269,10 @@ class _BoardContentState extends ConsumerState<_BoardContent> {
     final screenWidth = MediaQuery.of(context).size.width;
     final isWideLayout = screenWidth >= 600;
 
-    // Resolve space name for the header
-    final allSpaces = widget.allSpaces ?? [];
-    final currentSpace = allSpaces.where((s) => s.id == widget.spaceId).firstOrNull;
-    final spaceName = currentSpace?.name ?? 'Board';
-
     return Scaffold(
-      appBar: SharedAppBar(
-        title: spaceName,
-        leading: const SizedBox.shrink(),
-        centerTitle: false,
-        actions: [
-          IconButton(
-            onPressed: () => _showSpacePicker(context, allSpaces),
-            icon: const Icon(Icons.dashboard_outlined, size: 22),
-            tooltip: 'Switch space',
-          ),
+      appBar: AppShellBar(
+        currentTab: AppTab.board,
+        additionalActions: [
           if (!isWideLayout)
             IconButton(
               onPressed: () {
@@ -343,7 +322,7 @@ class _BoardContentState extends ConsumerState<_BoardContent> {
           // Apply active filters
           final filter = ref.watch(boardFilterProvider);
           final filteredTasks = filter.isActive
-              ? allTasks.where((t) => filter.matches(t)).toList()
+              ? allTasks.where(filter.matches).toList()
               : allTasks;
 
           // Hide recurring tasks whose due date is in the future
@@ -428,197 +407,6 @@ class _BoardContentState extends ConsumerState<_BoardContent> {
     );
   }
 
-  void _showSpacePicker(BuildContext context, List<SpaceModel> allSpaces) {
-    final colors = Theme.of(context).colorScheme;
-    showModalBottomSheet<void>(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (ctx) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Text('Switch Space',
-                    style: AppTextStyles.headingSmall
-                        .copyWith(color: colors.onSurface)),
-              ),
-              const Divider(height: 1),
-              Flexible(
-                child: ListView(
-                  shrinkWrap: true,
-                  children: [
-                    for (final space in allSpaces)
-                      ListTile(
-                        title: Text(space.name),
-                        leading: Icon(Icons.workspaces_outlined,
-                            color: space.id == widget.spaceId
-                                ? colors.primary
-                                : colors.onSurface.withValues(alpha: 0.5)),
-                        trailing: space.id == widget.spaceId
-                            ? Icon(Icons.check, color: colors.primary)
-                            : null,
-                        onTap: () {
-                          Navigator.of(ctx).pop();
-                          GoRouter.of(context).go('/spaces/${space.id}');
-                        },
-                      ),
-                  ],
-                ),
-              ),
-              const Divider(height: 1),
-              ListTile(
-                leading: Icon(Icons.add_rounded, color: colors.primary),
-                title: Text('Create new space...',
-                    style: TextStyle(color: colors.primary)),
-                onTap: () {
-                  Navigator.of(ctx).pop();
-                  _showCreateSpaceDialog(context);
-                },
-              ),
-              ListTile(
-                leading: Icon(Icons.group_add_rounded, color: colors.primary),
-                title: Text('Join a space...',
-                    style: TextStyle(color: colors.primary)),
-                onTap: () {
-                  Navigator.of(ctx).pop();
-                  _showJoinSpaceDialog(context);
-                },
-              ),
-              const SizedBox(height: 8),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  void _showCreateSpaceDialog(BuildContext context) {
-    final controller = TextEditingController();
-    final colors = Theme.of(context).colorScheme;
-    final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Create Space',
-            style: AppTextStyles.headingSmall
-                .copyWith(color: colors.onSurface)),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          textCapitalization: TextCapitalization.words,
-          decoration: const InputDecoration(
-            hintText: 'e.g. Our Home, Family, Vacation...',
-            border: OutlineInputBorder(),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () async {
-              final name = controller.text.trim();
-              if (name.isEmpty) return;
-              Navigator.of(ctx).pop();
-              try {
-                final space = await ref
-                    .read(spaceActionProvider.notifier)
-                    .createSpace(name: name, userId: userId);
-                if (context.mounted) {
-                  GoRouter.of(context).go('/spaces/${space.id}');
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Failed to create space: $e')),
-                  );
-                }
-              }
-            },
-            child: const Text('Create'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showJoinSpaceDialog(BuildContext context) {
-    final controller = TextEditingController();
-    final colors = Theme.of(context).colorScheme;
-    final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Join a Space',
-            style: AppTextStyles.headingSmall
-                .copyWith(color: colors.onSurface)),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          textCapitalization: TextCapitalization.characters,
-          textAlign: TextAlign.center,
-          style: AppTextStyles.headingSmall.copyWith(letterSpacing: 4),
-          decoration: const InputDecoration(
-            hintText: 'Enter invite code',
-            border: OutlineInputBorder(),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () async {
-              final code = controller.text.trim();
-              if (code.isEmpty) return;
-              Navigator.of(ctx).pop();
-              try {
-                final space = await ref
-                    .read(spaceActionProvider.notifier)
-                    .joinSpace(inviteCode: code, userId: userId);
-                if (context.mounted) {
-                  GoRouter.of(context).go('/spaces/${space.id}');
-                }
-              } on SpaceNotFoundException {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content:
-                            Text('No space found with that invite code')),
-                  );
-                }
-              } on AlreadyMemberException {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content:
-                            Text('You are already a member of this space')),
-                  );
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Failed to join space: $e')),
-                  );
-                }
-              }
-            },
-            child: const Text('Join'),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class _WideKanbanLayout extends ConsumerWidget {
@@ -666,7 +454,7 @@ class _WideKanbanLayout extends ConsumerWidget {
                   _kanbanStatuses[i],
                   tasksByStatus[_kanbanStatuses[i]] ?? [],
                 ),
-                onTaskTap: (task) => context.go('/spaces/$spaceId/task/${task.id}'),
+                onTaskTap: (task) => context.push('/board/task/${task.id}'),
                 onTaskCompleted: (task) => _onTaskDropped(
                   context,
                   ref,
@@ -711,12 +499,12 @@ class _WideKanbanLayout extends ConsumerWidget {
     final newOrder = targetTasks.isEmpty
         ? 0
         : targetTasks.last.order + 1;
-    ref.read(taskActionProvider.notifier).moveTask(
+    unawaited(ref.read(taskActionProvider.notifier).moveTask(
           spaceId: spaceId,
           taskId: task.id,
           newStatus: targetStatus,
           newOrder: newOrder,
-        );
+        ));
   }
 
   void _onQuickAdd(
@@ -805,7 +593,7 @@ class _CompactKanbanLayoutState extends ConsumerState<_CompactKanbanLayout> {
                       _dragOverStatus = null;
                       _isDragging = false;
                     });
-                    HapticFeedback.lightImpact();
+                    unawaited(HapticFeedback.lightImpact());
                     _onTaskDroppedWithCheck(
                       details.data,
                       _kanbanStatuses[i],
@@ -835,8 +623,8 @@ class _CompactKanbanLayoutState extends ConsumerState<_CompactKanbanLayout> {
                         _kanbanStatuses[i],
                         widget.tasksByStatus[_kanbanStatuses[i]] ?? [],
                       ),
-                      onTaskTap: (task) => context.go(
-                          '/spaces/${widget.spaceId}/task/${task.id}'),
+                      onTaskTap: (task) => context.push(
+                          '/board/task/${task.id}'),
                       onTaskCompleted: (task) => _onTaskDropped(
                         task,
                         'done',
@@ -1043,12 +831,12 @@ class _MobileKanbanLayoutState extends ConsumerState<_MobileKanbanLayout> {
                             _onTaskDropped(task, status, tasks),
                         onQuickAdd: (title) =>
                             _onQuickAdd(title, status, tasks),
-                        onTaskTap: (task) => context.go(
-                            '/spaces/${widget.spaceId}/task/${task.id}'),
+                        onTaskTap: (task) => context.push(
+                            '/board/task/${task.id}'),
                         onTaskCompleted: (task) =>
                             _onTaskDropped(task, 'done', []),
                         onArchiveCompleted: status == 'done'
-                            ? () => _archiveCompleted()
+                            ? _archiveCompleted
                             : null,
                         onDragStarted: () =>
                             setState(() => _isDragging = true),
@@ -1125,7 +913,7 @@ class _MobileKanbanLayoutState extends ConsumerState<_MobileKanbanLayout> {
           _hoverDropZone = null;
           _isDragging = false;
         });
-        HapticFeedback.lightImpact();
+        unawaited(HapticFeedback.lightImpact());
         _onTaskDropped(
           details.data,
           targetStatus,
@@ -1192,12 +980,12 @@ class _MobileKanbanLayoutState extends ConsumerState<_MobileKanbanLayout> {
 
     final newOrder =
         targetTasks.isEmpty ? 0 : targetTasks.last.order + 1;
-    ref.read(taskActionProvider.notifier).moveTask(
+    unawaited(ref.read(taskActionProvider.notifier).moveTask(
           spaceId: widget.spaceId,
           taskId: task.id,
           newStatus: targetStatus,
           newOrder: newOrder,
-        );
+        ));
   }
 
   void _onQuickAdd(

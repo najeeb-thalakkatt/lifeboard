@@ -329,16 +329,14 @@ class NotificationService {
 
     // HomePad notifications → open HomePad tab
     if (type == 'homepad_items_added' || type == 'homepad_all_done') {
-      GoRouter.of(context).go('/homepad');
+      GoRouter.of(context).go('/buylist');
       return;
     }
 
     if (spaceId != null && taskId != null) {
-      GoRouter.of(context).go('/spaces/$spaceId/task/$taskId');
-    } else if (spaceId != null) {
-      GoRouter.of(context).go('/spaces/$spaceId');
+      GoRouter.of(context).push('/board/task/$taskId');
     } else {
-      GoRouter.of(context).go('/spaces');
+      GoRouter.of(context).go('/board');
     }
   }
 

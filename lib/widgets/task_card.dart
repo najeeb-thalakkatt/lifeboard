@@ -74,7 +74,7 @@ class TaskCard extends StatelessWidget {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.block, size: 12,
+                              const Icon(Icons.block, size: 12,
                                   color: AppColors.error),
                               const SizedBox(width: 3),
                               Text(

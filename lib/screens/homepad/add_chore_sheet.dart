@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -91,7 +93,7 @@ class _AddChoreSheetState extends ConsumerState<AddChoreSheet> {
       }
 
       if (mounted) {
-        HapticFeedback.mediumImpact();
+        unawaited(HapticFeedback.mediumImpact());
         Navigator.of(context).pop(true);
       }
     } catch (_) {
@@ -188,7 +190,7 @@ class _AddChoreSheetState extends ConsumerState<AddChoreSheet> {
                   controller: _nameController,
                   autofocus: !_isEditing,
                   textCapitalization: TextCapitalization.sentences,
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     hintText: AppConstants.choreWhatNeedsDoing,
                     border: OutlineInputBorder(),
                   ),
