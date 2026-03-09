@@ -9,7 +9,9 @@
     "start": "npm run shell",
     "deploy": "firebase deploy --only functions",
     "logs": "firebase functions:log",
-    "test-push": "npx ts-node src/test-push.ts"
+    "test-push": "npx ts-node src/test-push.ts",
+    "seed": "npx ts-node src/seed-review-data.ts",
+    "seed:clean": "npx ts-node src/seed-review-data.ts --clean"
   },
   "engines": {
     "node": "20"

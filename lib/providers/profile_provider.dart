@@ -1,7 +1,12 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
+import 'dart:convert';
+import 'dart:math';
+import 'package:crypto/crypto.dart';
 
 import 'package:lifeboard/providers/activity_provider.dart';
 import 'package:lifeboard/providers/auth_provider.dart';
@@ -290,27 +295,136 @@ class ProfileActionNotifier extends StateNotifier<AsyncValue<void>> {
     await authService.signOut();
   }
 
-  /// Deletes the user's account (Firestore data + Firebase Auth).
-  /// Throws [FirebaseAuthException] with code 'requires-recent-login' if
-  /// the session is too old — the caller should prompt re-authentication.
-  Future<void> deleteAccount() async {
+  /// Returns the primary sign-in provider for the current user.
+  String? getSignInProvider() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return null;
+    for (final info in user.providerData) {
+      if (info.providerId == 'google.com') return 'google.com';
+      if (info.providerId == 'apple.com') return 'apple.com';
+      if (info.providerId == 'password') return 'password';
+    }
+    return null;
+  }
+
+  /// Re-authenticates with email/password, then deletes the account.
+  Future<void> deleteAccountWithPassword(String password) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null || user.email == null) {
+      debugPrint('[DELETE] No current user or email — aborting');
+      return;
+    }
+
+    debugPrint('[DELETE] Starting deletion for ${user.email}');
+    state = const AsyncLoading();
+    try {
+      final credential = EmailAuthProvider.credential(
+        email: user.email!,
+        password: password,
+      );
+      debugPrint('[DELETE] Re-authenticating...');
+      await user.reauthenticateWithCredential(credential);
+      debugPrint('[DELETE] Re-auth successful, proceeding to delete');
+      await _performAccountDeletion(user);
+    } catch (e, st) {
+      debugPrint('[DELETE] ERROR: $e');
+      state = AsyncError(e, st);
+      rethrow;
+    }
+  }
+
+  /// Re-authenticates with Google, then deletes the account.
+  Future<void> deleteAccountWithGoogle() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
     state = const AsyncLoading();
     try {
-      final firestoreService = _ref.read(firestoreServiceProvider);
-      await firestoreService.deleteUserAccount(userId: user.uid);
-      await user.delete();
-      state = const AsyncData(null);
-    } on FirebaseAuthException catch (e, st) {
-      state = AsyncError(e, st);
-      if (e.code == 'requires-recent-login') {
-        rethrow;
-      }
+      final googleSignIn = GoogleSignIn.instance;
+      await googleSignIn.initialize();
+      final account = await googleSignIn.authenticate();
+      final idToken = account.authentication.idToken;
+      final credential = GoogleAuthProvider.credential(idToken: idToken);
+      await user.reauthenticateWithCredential(credential);
+      await _performAccountDeletion(user);
     } catch (e, st) {
       state = AsyncError(e, st);
+      rethrow;
     }
+  }
+
+  /// Re-authenticates with Apple, then deletes the account.
+  Future<void> deleteAccountWithApple() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    state = const AsyncLoading();
+    try {
+      final rawNonce = _generateNonce();
+      final nonce = _sha256ofString(rawNonce);
+
+      final appleCredential = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+        nonce: nonce,
+      );
+
+      final idToken = appleCredential.identityToken;
+      if (idToken == null) throw Exception('Apple Sign-In was cancelled.');
+
+      final oauthCredential = OAuthProvider('apple.com').credential(
+        idToken: idToken,
+        rawNonce: rawNonce,
+        accessToken: appleCredential.authorizationCode,
+      );
+      await user.reauthenticateWithCredential(oauthCredential);
+      await _performAccountDeletion(user);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      rethrow;
+    }
+  }
+
+  /// Deletes Firestore data and the Firebase Auth account,
+  /// then invalidates providers to trigger navigation to auth screen.
+  Future<void> _performAccountDeletion(User user) async {
+    final firestoreService = _ref.read(firestoreServiceProvider);
+
+    // 1. Delete Firestore user data
+    debugPrint('[DELETE] Deleting Firestore data for ${user.uid}');
+    await firestoreService.deleteUserAccount(userId: user.uid);
+    debugPrint('[DELETE] Firestore data deleted');
+
+    // 2. Delete the Firebase Auth account — must happen BEFORE
+    //    invalidating providers, because invalidation triggers
+    //    navigation which could abort this async operation.
+    debugPrint('[DELETE] Deleting Firebase Auth account');
+    await user.delete();
+    debugPrint('[DELETE] Firebase Auth account deleted');
+
+    // 3. Now safe to invalidate providers and clear local state.
+    _ref.invalidate(currentUserProvider);
+    _ref.invalidate(userSpacesProvider);
+    _ref.invalidate(unreadActivityCountProvider);
+
+    state = const AsyncData(null);
+    debugPrint('[DELETE] Account deletion complete');
+  }
+
+  String _generateNonce([int length = 32]) {
+    const charset =
+        '0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._';
+    final random = Random.secure();
+    return List.generate(
+        length, (_) => charset[random.nextInt(charset.length)]).join();
+  }
+
+  String _sha256ofString(String input) {
+    final bytes = utf8.encode(input);
+    final digest = sha256.convert(bytes);
+    return digest.toString();
   }
 }
 

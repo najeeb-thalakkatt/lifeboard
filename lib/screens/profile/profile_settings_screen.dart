@@ -1026,6 +1026,9 @@ class _AccountActionsCard extends ConsumerWidget {
   }
 
   void _confirmDeleteAccount(BuildContext context, WidgetRef ref) {
+    final notifier = ref.read(profileActionProvider.notifier);
+    final provider = notifier.getSignInProvider();
+
     showCupertinoDialog(
       context: context,
       builder: (ctx) => CupertinoAlertDialog(
@@ -1040,20 +1043,12 @@ class _AccountActionsCard extends ConsumerWidget {
           ),
           CupertinoDialogAction(
             isDestructiveAction: true,
-            onPressed: () async {
+            onPressed: () {
               Navigator.pop(ctx);
-              try {
-                await ref.read(profileActionProvider.notifier).deleteAccount();
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Failed to delete account. You may need to sign in again first.',
-                      ),
-                    ),
-                  );
-                }
+              if (provider == 'password') {
+                _showPasswordForDeletion(context, ref);
+              } else {
+                _deleteWithProvider(context, ref, provider);
               }
             },
             child: const Text('Delete my account'),
@@ -1061,6 +1056,85 @@ class _AccountActionsCard extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  void _showPasswordForDeletion(BuildContext context, WidgetRef ref) {
+    final controller = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Confirm your password'),
+        content: TextField(
+          controller: controller,
+          obscureText: true,
+          autofocus: true,
+          decoration: const InputDecoration(
+            labelText: 'Password',
+            hintText: 'Enter your password to continue',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              final password = controller.text.trim();
+              if (password.isEmpty) return;
+              Navigator.pop(ctx);
+              try {
+                await ref
+                    .read(profileActionProvider.notifier)
+                    .deleteAccountWithPassword(password);
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        e is FirebaseAuthException && e.code == 'wrong-password'
+                            ? 'Incorrect password. Please try again.'
+                            : 'Failed to delete account: ${e.toString()}',
+                      ),
+                    ),
+                  );
+                }
+              }
+            },
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _deleteWithProvider(
+      BuildContext context, WidgetRef ref, String? provider) async {
+    try {
+      final notifier = ref.read(profileActionProvider.notifier);
+      if (provider == 'google.com') {
+        await notifier.deleteAccountWithGoogle();
+      } else if (provider == 'apple.com') {
+        await notifier.deleteAccountWithApple();
+      } else {
+        // Fallback — try Google first as it's most common
+        await notifier.deleteAccountWithGoogle();
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              e is AuthCancelledException
+                  ? 'Sign-in was cancelled. Account was not deleted.'
+                  : 'Failed to delete account: ${e.toString()}',
+            ),
+          ),
+        );
+      }
+    }
   }
 }
 
