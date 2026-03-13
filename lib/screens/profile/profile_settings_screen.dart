@@ -10,6 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:lifeboard/core/constants.dart';
+import 'package:lifeboard/services/biometric_service.dart';
 import 'package:lifeboard/core/errors/app_exceptions.dart';
 import 'package:lifeboard/models/space_model.dart';
 import 'package:lifeboard/models/user_model.dart';
@@ -783,13 +784,52 @@ class _SpaceTile extends ConsumerWidget {
 
 // ── Preferences Card ──────────────────────────────────────────────
 
-class _PreferencesCard extends ConsumerWidget {
+class _PreferencesCard extends ConsumerStatefulWidget {
   const _PreferencesCard({required this.user, required this.themeMode});
   final UserModel? user;
   final ThemeMode themeMode;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_PreferencesCard> createState() => _PreferencesCardState();
+}
+
+class _PreferencesCardState extends ConsumerState<_PreferencesCard> {
+  final _biometricService = BiometricService();
+  bool _biometricAvailable = false;
+  bool _biometricEnabled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBiometricState();
+  }
+
+  Future<void> _loadBiometricState() async {
+    final available = await _biometricService.isAvailable;
+    final enabled = await _biometricService.isEnabled;
+    if (mounted) {
+      setState(() {
+        _biometricAvailable = available;
+        _biometricEnabled = enabled;
+      });
+    }
+  }
+
+  Future<void> _toggleBiometric(bool value) async {
+    if (value) {
+      // Verify biometrics work before enabling
+      final success = await _biometricService.authenticate(
+        reason: 'Verify your identity to enable app lock',
+      );
+      if (!success) return;
+    }
+    await _biometricService.setEnabled(value);
+    if (mounted) setState(() => _biometricEnabled = value);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final user = widget.user;
     final pushEnabled = user?.notificationPrefs.pushEnabled ?? true;
     final emailEnabled = user?.notificationPrefs.emailEnabled ?? true;
     final homePadUpdates = user?.notificationPrefs.homePadUpdates ?? true;
@@ -825,6 +865,17 @@ class _PreferencesCard extends ConsumerWidget {
             },
           ),
           const Divider(height: 1, indent: 16, endIndent: 16),
+
+          // ── Biometric Lock ─────────────────────────────────
+          if (_biometricAvailable) ...[
+            _CupertinoSwitchRow(
+              icon: Icons.fingerprint,
+              label: 'Lock with Face ID',
+              value: _biometricEnabled,
+              onChanged: _toggleBiometric,
+            ),
+            const Divider(height: 1, indent: 16, endIndent: 16),
+          ],
 
           // ── Push Notifications ────────────────────────────
           _CupertinoSwitchRow(

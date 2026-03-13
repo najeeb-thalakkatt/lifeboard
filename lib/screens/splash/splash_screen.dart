@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'package:lifeboard/screens/onboarding/feature_tour_screen.dart';
 import 'package:lifeboard/theme/app_colors.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -16,10 +17,17 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) {
-        final user = FirebaseAuth.instance.currentUser;
-        context.go(user != null ? '/board' : '/welcome');
+    Future.delayed(const Duration(seconds: 2), () async {
+      if (!mounted) return;
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        context.go('/board');
+      } else {
+        // Show feature tour for first-time users
+        final hasSeen = await FeatureTourScreen.hasSeenTour();
+        if (mounted) {
+          context.go(hasSeen ? '/welcome' : '/tour');
+        }
       }
     });
   }

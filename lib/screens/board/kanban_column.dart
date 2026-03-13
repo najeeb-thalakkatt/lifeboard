@@ -31,6 +31,10 @@ class KanbanColumn extends StatefulWidget {
     this.onDragStarted,
     this.onDragEnd,
     this.onArchiveCompleted,
+    this.onTaskMoveToStatus,
+    this.onTaskAssignToMe,
+    this.onTaskArchive,
+    this.onTaskDelete,
   });
 
   /// The status key for this column ('todo', 'in_progress', 'done').
@@ -72,6 +76,18 @@ class KanbanColumn extends StatefulWidget {
   /// Called when the user taps "Archive completed" in the Done column.
   final VoidCallback? onArchiveCompleted;
 
+  /// Called when user picks "Move to..." from context menu.
+  final void Function(TaskModel task, String newStatus)? onTaskMoveToStatus;
+
+  /// Called when user picks "Assign to Me" from context menu.
+  final void Function(TaskModel task)? onTaskAssignToMe;
+
+  /// Called when user picks "Archive" from context menu.
+  final void Function(TaskModel task)? onTaskArchive;
+
+  /// Called when user picks "Delete" from context menu.
+  final void Function(TaskModel task)? onTaskDelete;
+
   @override
   State<KanbanColumn> createState() => _KanbanColumnState();
 }
@@ -87,6 +103,75 @@ class _KanbanColumnState extends State<KanbanColumn> {
     _addController.dispose();
     _addFocusNode.dispose();
     super.dispose();
+  }
+
+  Widget _buildContextMenuWrapper({
+    required BuildContext context,
+    required TaskModel task,
+    required Widget child,
+  }) {
+    if (kIsWeb) return child;
+
+    final otherStatuses = ['todo', 'in_progress', 'done']
+        .where((s) => s != widget.status)
+        .toList();
+
+    return CupertinoContextMenu(
+      enableHapticFeedback: true,
+      actions: [
+        // Edit
+        CupertinoContextMenuAction(
+          onPressed: () {
+            Navigator.of(context, rootNavigator: true).pop();
+            widget.onTaskTap?.call(task);
+          },
+          trailingIcon: CupertinoIcons.pencil,
+          child: const Text('Edit'),
+        ),
+        // Move to status
+        for (final status in otherStatuses)
+          CupertinoContextMenuAction(
+            onPressed: () {
+              Navigator.of(context, rootNavigator: true).pop();
+              widget.onTaskMoveToStatus?.call(task, status);
+            },
+            trailingIcon: status == 'done'
+                ? CupertinoIcons.check_mark_circled
+                : CupertinoIcons.arrow_right,
+            child: Text(
+                'Move to ${StatusDisplayName.fromStatus(status)}'),
+          ),
+        // Assign to me
+        CupertinoContextMenuAction(
+          onPressed: () {
+            Navigator.of(context, rootNavigator: true).pop();
+            widget.onTaskAssignToMe?.call(task);
+          },
+          trailingIcon: CupertinoIcons.person_add,
+          child: const Text('Assign to Me'),
+        ),
+        // Archive
+        CupertinoContextMenuAction(
+          onPressed: () {
+            Navigator.of(context, rootNavigator: true).pop();
+            widget.onTaskArchive?.call(task);
+          },
+          trailingIcon: CupertinoIcons.archivebox,
+          child: const Text('Archive'),
+        ),
+        // Delete
+        CupertinoContextMenuAction(
+          isDestructiveAction: true,
+          onPressed: () {
+            Navigator.of(context, rootNavigator: true).pop();
+            widget.onTaskDelete?.call(task);
+          },
+          trailingIcon: CupertinoIcons.delete,
+          child: const Text('Delete'),
+        ),
+      ],
+      child: child,
+    );
   }
 
   void _submitQuickAdd() {
@@ -178,16 +263,20 @@ class _KanbanColumnState extends State<KanbanColumn> {
                         itemCount: widget.tasks.length,
                         itemBuilder: (context, index) {
                           final task = widget.tasks[index];
-                          Widget taskCard = TaskCard(
+                          Widget taskCard = _buildContextMenuWrapper(
+                            context: context,
                             task: task,
-                            memberNames: widget.memberNames,
-                            onTap: widget.onTaskTap != null
-                                ? () => widget.onTaskTap!(task)
-                                : null,
-                            onToggleComplete:
-                                widget.onTaskCompleted != null
-                                    ? () => widget.onTaskCompleted!(task)
-                                    : null,
+                            child: TaskCard(
+                              task: task,
+                              memberNames: widget.memberNames,
+                              onTap: widget.onTaskTap != null
+                                  ? () => widget.onTaskTap!(task)
+                                  : null,
+                              onToggleComplete:
+                                  widget.onTaskCompleted != null
+                                      ? () => widget.onTaskCompleted!(task)
+                                      : null,
+                            ),
                           );
 
                           // Swipe-to-complete for non-done tasks

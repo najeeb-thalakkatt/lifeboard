@@ -6,6 +6,7 @@ import 'package:lifeboard/models/task_model.dart';
 import 'package:lifeboard/providers/activity_provider.dart';
 import 'package:lifeboard/providers/auth_provider.dart';
 import 'package:lifeboard/providers/space_provider.dart';
+import 'package:lifeboard/services/spotlight_service.dart';
 
 /// Streams tasks for a specific (spaceId, boardId) pair.
 final boardTasksProvider = StreamProvider.family<List<TaskModel>,
@@ -15,7 +16,13 @@ final boardTasksProvider = StreamProvider.family<List<TaskModel>,
   if (authState.valueOrNull == null) return const Stream.empty();
 
   final firestoreService = ref.watch(firestoreServiceProvider);
-  return firestoreService.getTasksForBoard(params.spaceId, params.boardId);
+  return firestoreService
+      .getTasksForBoard(params.spaceId, params.boardId)
+      .map((tasks) {
+    // Index tasks for Spotlight search
+    SpotlightService.indexTasks(tasks);
+    return tasks;
+  });
 });
 
 /// Notifier for task mutations (create, update, delete, reorder).

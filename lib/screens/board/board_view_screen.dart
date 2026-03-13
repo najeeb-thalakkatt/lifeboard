@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -465,6 +466,37 @@ class _WideKanbanLayout extends ConsumerWidget {
                 onArchiveCompleted: _kanbanStatuses[i] == 'done'
                     ? () => _archiveCompleted(context, ref)
                     : null,
+                onTaskMoveToStatus: (task, status) => _onTaskDropped(
+                  context,
+                  ref,
+                  task,
+                  status,
+                  tasksByStatus[status] ?? [],
+                ),
+                onTaskAssignToMe: (task) {
+                  final userId = FirebaseAuth.instance.currentUser?.uid;
+                  if (userId == null) return;
+                  final assignees = List<String>.from(task.assignees);
+                  if (!assignees.contains(userId)) assignees.add(userId);
+                  ref.read(taskActionProvider.notifier).updateTask(
+                    spaceId: spaceId,
+                    taskId: task.id,
+                    fields: {'assignees': assignees},
+                  );
+                },
+                onTaskArchive: (task) {
+                  ref.read(taskActionProvider.notifier).updateTask(
+                    spaceId: spaceId,
+                    taskId: task.id,
+                    fields: {'archivedAt': Timestamp.fromDate(DateTime.now())},
+                  );
+                },
+                onTaskDelete: (task) {
+                  ref.read(taskActionProvider.notifier).deleteTask(
+                    spaceId: spaceId,
+                    taskId: task.id,
+                  );
+                },
               ),
             ),
           ],
@@ -630,6 +662,45 @@ class _CompactKanbanLayoutState extends ConsumerState<_CompactKanbanLayout> {
                         'done',
                         widget.tasksByStatus['done'] ?? [],
                       ),
+                      onTaskMoveToStatus: (task, status) => _onTaskDropped(
+                        task,
+                        status,
+                        widget.tasksByStatus[status] ?? [],
+                      ),
+                      onTaskAssignToMe: (task) {
+                        final userId =
+                            FirebaseAuth.instance.currentUser?.uid;
+                        if (userId == null) return;
+                        final assignees =
+                            List<String>.from(task.assignees);
+                        if (!assignees.contains(userId)) {
+                          assignees.add(userId);
+                        }
+                        ref
+                            .read(taskActionProvider.notifier)
+                            .updateTask(
+                              spaceId: widget.spaceId,
+                              taskId: task.id,
+                              fields: {'assignees': assignees},
+                            );
+                      },
+                      onTaskArchive: (task) {
+                        ref
+                            .read(taskActionProvider.notifier)
+                            .updateTask(
+                              spaceId: widget.spaceId,
+                              taskId: task.id,
+                              fields: {'archivedAt': Timestamp.fromDate(DateTime.now())},
+                            );
+                      },
+                      onTaskDelete: (task) {
+                        ref
+                            .read(taskActionProvider.notifier)
+                            .deleteTask(
+                              spaceId: widget.spaceId,
+                              taskId: task.id,
+                            );
+                      },
                     );
                   },
                 ),
@@ -844,6 +915,43 @@ class _MobileKanbanLayoutState extends ConsumerState<_MobileKanbanLayout> {
                           _isDragging = false;
                           _hoverDropZone = null;
                         }),
+                        onTaskMoveToStatus: (task, targetStatus) =>
+                            _onTaskDropped(task, targetStatus,
+                                widget.tasksByStatus[targetStatus] ?? []),
+                        onTaskAssignToMe: (task) {
+                          final userId =
+                              FirebaseAuth.instance.currentUser?.uid;
+                          if (userId == null) return;
+                          final assignees =
+                              List<String>.from(task.assignees);
+                          if (!assignees.contains(userId)) {
+                            assignees.add(userId);
+                          }
+                          ref
+                              .read(taskActionProvider.notifier)
+                              .updateTask(
+                                spaceId: widget.spaceId,
+                                taskId: task.id,
+                                fields: {'assignees': assignees},
+                              );
+                        },
+                        onTaskArchive: (task) {
+                          ref
+                              .read(taskActionProvider.notifier)
+                              .updateTask(
+                                spaceId: widget.spaceId,
+                                taskId: task.id,
+                                fields: {'archivedAt': Timestamp.fromDate(DateTime.now())},
+                              );
+                        },
+                        onTaskDelete: (task) {
+                          ref
+                              .read(taskActionProvider.notifier)
+                              .deleteTask(
+                                spaceId: widget.spaceId,
+                                taskId: task.id,
+                              );
+                        },
                       ),
                     );
                   },

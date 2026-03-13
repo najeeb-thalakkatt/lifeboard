@@ -20,6 +20,7 @@ import 'package:lifeboard/screens/weekly/weekly_view_screen.dart';
 import 'package:lifeboard/screens/profile/profile_settings_screen.dart';
 import 'package:lifeboard/screens/activity/activity_feed_screen.dart';
 import 'package:lifeboard/screens/splash/splash_screen.dart';
+import 'package:lifeboard/screens/onboarding/feature_tour_screen.dart';
 import 'package:lifeboard/providers/profile_provider.dart';
 
 // ── Router ───────────────────────────────────────────────────
@@ -27,8 +28,8 @@ import 'package:lifeboard/providers/profile_provider.dart';
 final rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorKey = GlobalKey<NavigatorState>();
 
-/// Routes only for unauthenticated users (login/signup).
-const _unauthOnlyPaths = ['/welcome', '/auth'];
+/// Routes only for unauthenticated users (login/signup/tour).
+const _unauthOnlyPaths = ['/welcome', '/auth', '/tour'];
 
 /// Routes that require auth but live outside the bottom-nav shell.
 const _authNoShellPaths = ['/create-space', '/invite'];
@@ -84,6 +85,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
 
       // ── Public routes (no shell / no bottom nav) ──────────
+      GoRoute(
+        path: '/tour',
+        builder: (context, state) => const FeatureTourScreen(),
+      ),
       GoRoute(
         path: '/welcome',
         builder: (context, state) => const WelcomeScreen(),

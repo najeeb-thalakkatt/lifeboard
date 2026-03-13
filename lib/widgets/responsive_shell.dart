@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'package:lifeboard/providers/connectivity_provider.dart';
 import 'package:lifeboard/providers/navigation_provider.dart';
+import 'package:lifeboard/providers/widget_provider.dart';
 import 'package:lifeboard/widgets/bottom_nav_bar.dart';
 
 /// Responsive navigation shell that adapts to screen width:
@@ -53,18 +55,30 @@ class ResponsiveShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isOffline = ref.watch(isOfflineProvider);
+
+    // Keep iOS widget data in sync with app state
+    ref.watch(widgetSyncProvider);
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
-
         final currentIdx = _currentIndex();
+
+        // Wrap content with offline banner
+        final content = Column(
+          children: [
+            if (isOffline) const _OfflineBanner(),
+            Expanded(child: child),
+          ],
+        );
 
         // ── Desktop (> 1024px): side drawer ───────────────
         if (width > 1024) {
           return _DesktopLayout(
             currentIndex: currentIdx,
             onNavigate: (i) => _onNavigate(context, ref, i),
-            child: child,
+            child: content,
           );
         }
 
@@ -73,7 +87,7 @@ class ResponsiveShell extends ConsumerWidget {
           return _TabletLayout(
             currentIndex: currentIdx,
             onNavigate: (i) => _onNavigate(context, ref, i),
-            child: child,
+            child: content,
           );
         }
 
@@ -81,7 +95,7 @@ class ResponsiveShell extends ConsumerWidget {
         return _MobileLayout(
           currentIndex: currentIdx,
           onNavigate: (i) => _onNavigate(context, ref, i),
-          child: child,
+          child: content,
         );
       },
     );
@@ -274,6 +288,36 @@ class _DesktopLayout extends StatelessWidget {
           ),
           const VerticalDivider(thickness: 1, width: 1),
           Expanded(child: child),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Offline Banner ──────────────────────────────────────────────────
+
+class _OfflineBanner extends StatelessWidget {
+  const _OfflineBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      color: Colors.orange.shade800,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.cloud_off, size: 14, color: Colors.white),
+          const SizedBox(width: 8),
+          Text(
+            'You\'re offline \u2014 changes will sync when connected',
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              color: Colors.white,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
         ],
       ),
     );

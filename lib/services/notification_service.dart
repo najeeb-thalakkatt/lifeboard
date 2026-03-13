@@ -9,6 +9,8 @@ import 'package:go_router/go_router.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 
+import 'package:flutter_app_badger/flutter_app_badger.dart';
+
 import 'package:lifeboard/models/task_model.dart';
 import 'package:lifeboard/services/firestore_service.dart';
 
@@ -314,7 +316,12 @@ class NotificationService {
 
   /// Handles a notification received while the app is in the foreground.
   void _handleForegroundMessage(RemoteMessage message) {
-    // Foreground messages are handled by the system notification display.
+    // Update badge count on foreground message
+    if (!kIsWeb) {
+      try {
+        FlutterAppBadger.updateBadgeCount(1);
+      } catch (_) {}
+    }
   }
 
   /// Handles taps on notifications (background + terminated state).
